@@ -1,0 +1,43 @@
+#ifndef USER_LED_H
+#define USER_LED_H
+
+#include "qpcpp.h"
+#include "fw_evt.h"
+#include "hsm_id.h"
+#include "bsp.h"
+
+using namespace QP;
+using namespace FW;
+
+namespace APP {
+
+class UserLed : public QActive {
+public:
+    UserLed();
+    void Start(uint8_t prio) {
+        QActive::start(prio, m_evtQueueStor, ARRAY_COUNT(m_evtQueueStor), NULL, 0);
+    }
+
+protected:
+    static QState InitialPseudoState(UserLed * const me, QEvt const * const e);
+    static QState Root(UserLed * const me, QEvt const * const e);
+        static QState Stopped(UserLed * const me, QEvt const * const e);
+        static QState Started(UserLed * const me, QEvt const * const e);
+    
+    bool ConfigPwm();
+        
+    enum {
+        EVT_QUEUE_COUNT = 16
+    };
+    QEvt const *m_evtQueueStor[EVT_QUEUE_COUNT];
+    uint8_t m_id;
+    char const * m_name;
+    uint16_t m_nextSequence;
+    TIM_HandleTypeDef m_timHandle;
+    
+    QTimeEvt m_stateTimer;
+};
+
+} // namespace APP
+
+#endif // USER_LED_H
