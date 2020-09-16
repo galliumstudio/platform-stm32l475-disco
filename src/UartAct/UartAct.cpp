@@ -119,8 +119,8 @@ UartAct::Config const UartAct::CONFIG[] = {
 // Corresponds to what was done in _msp.cpp file.
 void UartAct::InitUart() {
     switch((uint32_t)(m_config->uart)) {
-        case (uint32_t)USART1: __HAL_RCC_USART1_CLK_ENABLE(); break;
-        case (uint32_t)USART2: __HAL_RCC_USART2_CLK_ENABLE(); break;
+        case USART1_BASE: __HAL_RCC_USART1_CLK_ENABLE(); break;
+        case USART2_BASE: __HAL_RCC_USART2_CLK_ENABLE(); break;
         // Add more cases here...
         default: FW_ASSERT(0); break;
     }
@@ -182,7 +182,7 @@ void UartAct::InitUart() {
 
 void UartAct::DeInitUart() {
     switch((uint32_t)(m_hal.Instance)) {
-        case (uint32_t)USART2: __HAL_RCC_USART2_FORCE_RESET(); __HAL_RCC_USART2_RELEASE_RESET(); __HAL_RCC_USART2_CLK_DISABLE(); break;
+        case USART2_BASE: __HAL_RCC_USART2_FORCE_RESET(); __HAL_RCC_USART2_RELEASE_RESET(); __HAL_RCC_USART2_CLK_DISABLE(); break;
         // Add more cases here...
         default: FW_ASSERT(0); break;
     }

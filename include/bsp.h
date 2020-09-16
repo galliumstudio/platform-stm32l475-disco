@@ -54,7 +54,7 @@ enum KernelUnawareISRs { // see NOTE00
     MAX_KERNEL_UNAWARE_CMSIS_PRI  // keep always last
 };
 // "kernel-unaware" interrupts can't overlap "kernel-aware" interrupts
-Q_ASSERT_COMPILE(MAX_KERNEL_UNAWARE_CMSIS_PRI <= QF_AWARE_ISR_CMSIS_PRI);
+Q_ASSERT_COMPILE(MAX_KERNEL_UNAWARE_CMSIS_PRI <= (int)QF_AWARE_ISR_CMSIS_PRI);
 
 // Lower numerical value indicates higher priority.
 enum KernelAwareISRs {
