@@ -3,14 +3,14 @@
 * @brief Customizable and memory-efficient assertions for embedded systems
 * @cond
 ******************************************************************************
-* Last updated for version 5.6.0
-* Last updated on  2015-12-18
+* Last updated for version 6.3.8
+* Last updated on  2019-01-23
 *
-*                    Q u a n t u m     L e a P s
-*                    ---------------------------
-*                    innovating embedded systems
+*                    Q u a n t u m  L e a P s
+*                    ------------------------
+*                    Modern Embedded Software
 *
-* Copyright (C) Quantum Leaps, LLC. All rights reserved.
+* Copyright (C) 2005-2019 Quantum Leaps, LLC. All rights reserved.
 *
 * This program is open source software: you can redistribute it and/or
 * modify it under the terms of the GNU General Public License as published
@@ -31,7 +31,7 @@
 * along with this program. If not, see <http://www.gnu.org/licenses/>.
 *
 * Contact information:
-* http://www.state-machine.com
+* https://www.state-machine.com
 * mailto:info@state-machine.com
 ******************************************************************************
 * @endcond
@@ -51,6 +51,7 @@
 
 #ifdef Q_NASSERT /* Q_NASSERT defined--assertion checking disabled */
 
+    /* provide dummy (empty) definitions that don't generate any code... */
     #define Q_DEFINE_THIS_FILE
     #define Q_DEFINE_THIS_MODULE(name_)
     #define Q_ASSERT(test_)             ((void)0)
@@ -61,6 +62,30 @@
     #define Q_ERROR_ID(id_)             ((void)0)
 
 #else  /* Q_NASSERT not defined--assertion checking enabled */
+
+#ifndef qep_h /* QEP not included (i.e., is quassert.h used outside QP? */
+
+    /* provide typedefs so that qassert.h could be used "standalone"... */
+
+    /*! typedef for character strings. */
+    /**
+    * @description
+    * This typedef specifies character type for exclusive use in character
+    * strings. Use of this type, rather than plain 'char', is in compliance
+    * with the MISRA-C 2004 Rules 6.1(req), 6.3(adv).
+    */
+    typedef char char_t;
+
+    /*! typedef for assertions-ids and line numbers in assertions. */
+    /**
+    * @description
+    * This typedef specifies integer type for exclusive use in assertions.
+    * Use of this type, rather than plain 'int', is in compliance
+    * with the MISRA-C 2004 Rules 6.1(req), 6.3(adv).
+    */
+    typedef int int_t;
+
+#endif
 
     /*! Define the file name (with `__FILE__`) for assertions in this file. */
     /**
@@ -287,7 +312,7 @@ void Q_onAssert(char_t const * const module, int_t location);
 */
 #define Q_INVARIANT_ID(id_, test_) Q_ASSERT_ID((id_), (test_))
 
-/*! Compile-time assertion. */
+/*! Static (compile-time) assertion. */
 /**
 * @description
 * This type of assertion deliberately causes a compile-time error when
@@ -297,7 +322,13 @@ void Q_onAssert(char_t const * const module, int_t location);
 *
 * @param[in] test_ Compile-time Boolean expression
 */
-#define Q_ASSERT_COMPILE(test_) \
-    extern int_t Q_assert_compile[(test_) ? 1 : -1]
+#define Q_ASSERT_STATIC(test_) \
+    extern int_t Q_assert_static[(test_) ? 1 : -1]
+
+#define Q_ASSERT_COMPILE(test_) Q_ASSERT_STATIC(test_)
+
+/*! Helper macro to calculate static dimension of a 1-dim @p array_ */
+#define Q_DIM(array_) (sizeof(array_) / sizeof((array_)[0]))
 
 #endif /* qassert_h */
+

@@ -3,14 +3,14 @@
 /// @ingroup qf
 /// @cond
 ///***************************************************************************
-/// Last updated for version 5.8.1
-/// Last updated on  2016-12-14
+/// Last updated for version 6.5.0
+/// Last updated on  2019-03-21
 ///
-///                    Q u a n t u m     L e a P s
-///                    ---------------------------
-///                    innovating embedded systems
+///                    Q u a n t u m  L e a P s
+///                    ------------------------
+///                    Modern Embedded Software
 ///
-/// Copyright (C) Quantum Leaps. All rights reserved.
+/// Copyright (C) 2005-2019 Quantum Leaps. All rights reserved.
 ///
 /// This program is open source software: you can redistribute it and/or
 /// modify it under the terms of the GNU General Public License as published
@@ -31,7 +31,7 @@
 /// along with this program. If not, see <http://www.gnu.org/licenses/>.
 ///
 /// Contact information:
-/// http://www.state-machine.com
+/// https://www.state-machine.com
 /// mailto:info@state-machine.com
 ///***************************************************************************
 /// @endcond
@@ -63,7 +63,10 @@
 
 #ifndef QF_MAX_TICK_RATE
     //! Default value of the macro configurable value in qf_port.h
+    //! Valid values: [0..15]; default 1
     #define QF_MAX_TICK_RATE     1
+#elif (QF_MAX_TICK_RATE > 15)
+    #error "QF_MAX_TICK_RATE exceeds the maximum of 15"
 #endif
 
 #ifndef QF_TIMEEVT_CTR_SIZE
@@ -173,8 +176,13 @@ public: // for access from extern "C" functions
     QF_THREAD_TYPE m_thread;
 #endif
 
-    //! QF priority associated with the active object.
-    uint_fast8_t m_prio;
+    //! QF priority (1..#QF_MAX_ACTIVE) of this active object.
+    uint8_t m_prio;
+
+#ifdef qxk_h // QXK kernel used?
+    //! QF start priority (1..#QF_MAX_ACTIVE) of this active object.
+    uint8_t m_startPrio;
+#endif
 
 protected:
     //! protected constructor (abstract class)
@@ -197,6 +205,12 @@ public:
                     static_cast<QEvt const *>(0));
     }
 
+#ifdef QF_ACTIVE_STOP
+    //! Stops execution of an active object and removes it from the
+    //! framework's supervision.
+    void stop(void);
+#endif
+
 #ifndef Q_SPY
     //! Posts an event @p e directly to the event queue of the active
     //! object @p me using the First-In-First-Out (FIFO) policy.
@@ -212,10 +226,6 @@ public:
 
     //! Un-subscribes from the delivery of all signals to the active object.
     void unsubscribeAll(void) const;
-
-    //! Stops execution of an active object and removes it from the
-    //! framework's supervision.
-    void stop(void);
 
     //! Subscribes for delivery of signal @p sig to the active object
     void subscribe(enum_t const sig) const;
@@ -234,13 +244,16 @@ public:
 
     //! Get the priority of the active object.
     uint_fast8_t getPrio(void) const {
-        return m_prio;
+        return static_cast<uint_fast8_t>(m_prio);
     }
 
     //! Set the priority of the active object.
     void setPrio(uint_fast8_t const prio) {
-        m_prio = prio;
+        m_prio = static_cast<uint8_t>(prio);
     }
+
+    //! Generic setting of additional attributes (useful in QP ports)
+    void setAttr(uint32_t attr1, void const *attr2 = static_cast<void *>(0));
 
 #ifdef QF_OS_OBJECT_TYPE
     //! accessor to the OS-object for extern "C" functions, such as
@@ -257,6 +270,20 @@ public:
     //! Get an event from the event queue of an active object.
     QEvt const *get_(void);
 
+// duplicated API to be used exclusively inside ISRs (useful in some QP ports)
+#ifdef QF_ISR_API
+#ifdef Q_SPY
+    virtual bool postFromISR_(QEvt const * const e,
+                              uint_fast16_t const margin, void *par,
+                              void const * const sender);
+#else
+    virtual bool postFromISR_(QEvt const * const e,
+                              uint_fast16_t const margin, void *par);
+#endif // Q_SPY
+#endif // QF_ISR_API
+
+// friendships...
+private:
     friend class QF;
     friend class QTimeEvt;
     friend class QTicker;
@@ -269,6 +296,9 @@ public:
     friend class QXMutex;
     friend class QXSemaphore;
 #endif // qxk_h
+#ifdef Q_UTEST
+    friend class QActiveDummy;
+#endif // Q_UTEST
 };
 
 //****************************************************************************
@@ -353,13 +383,16 @@ private:
 /// list, so only armed time events consume CPU cycles.
 ///
 /// @note
-/// QF manages the time events in the macro TICK_X(), which must be
-/// called periodically, eitehr from a clock tick ISR, or from a task level.
+/// QF manages the time events in the macro TICK_X(), which must be called
+/// periodically, from the clock tick ISR or from the special QP::QTicker
+/// active object.
 ///
 /// @note
-/// In this version of QF QTimeEvt objects should __not__ be allocated
-/// dynamically from event pools. Currently, QF will not correctly recycle
-/// the dynamically allocated Time Events.
+/// Even though QP::QTimeEvt is a subclass of QP::QEvt, QP::QTimeEvt instances
+/// can NOT be allocated dynamically from event pools. In other words, it is
+/// illegal to allocate QP::QTimeEvt instances with the Q_NEW() or Q_NEW_X()
+/// macros.
+///
 class QTimeEvt : public QEvt {
 private:
 
@@ -391,7 +424,7 @@ public:
 
     //! The Time Event constructor.
     QTimeEvt(QActive * const act, enum_t const sgnl,
-             uint8_t const tickRate = static_cast<uint8_t>(0));
+             uint_fast8_t const tickRate = static_cast<uint_fast8_t>(0));
 
     //! Arm a time event (one shot or periodic) for event posting.
     void armX(QTimeEvtCtr const nTicks,
@@ -403,12 +436,16 @@ public:
     //! Rearm a time event.
     bool rearm(QTimeEvtCtr const nTicks);
 
+    //! Check the "was disarmed" status of a time event.
+    bool wasDisarmed(void);
+
     //! Get the current value of the down-counter of a time event.
-    QTimeEvtCtr ctr(void) const;
+    QTimeEvtCtr currCtr(void) const;
 
 #if (!defined QP_IMPL) && (QP_API_VERSION < 500)
-
     //! @deprecated TimeEvt ctor provided for backwards compatibility.
+    /// @overload QTimeEvt::QTimeEvt(QActive * const, enum_t const,
+    ///                              uint_fast8_t const)
     QTimeEvt(enum_t const sgnl) :
 #ifdef Q_EVT_CTOR
         QEvt(static_cast<QSignal>(sgnl)),
@@ -456,6 +493,7 @@ private:
     QTimeEvt *toTimeEvt(void) { return static_cast<QTimeEvt *>(m_act); }
 
     friend class QF;
+    friend class QS;
 #ifdef qxk_h
     friend class QXThread;
     friend void QXK_activate_(void);
@@ -515,21 +553,19 @@ public:
 
 #ifndef Q_SPY
     static void publish_(QEvt const *e);
-    static void tickX_(uint8_t const tickRate);
+    static void tickX_(uint_fast8_t const tickRate);
 #else
-
     //! Publish event to the framework.
     static void publish_(QEvt const *e, void const *sender);
 
     //! Processes all armed time events at every clock tick.
-    static void tickX_(uint8_t const tickRate, void const * const sender);
-
+    static void tickX_(uint_fast8_t const tickRate,
+                       void const * const sender);
 #endif // Q_SPY
 
     //! Returns true if all time events are inactive and false
     //! any time event is active.
-    static bool noTimeEvtsActiveX(uint8_t const tickRate);
-
+    static bool noTimeEvtsActiveX(uint_fast8_t const tickRate);
 
     //! This function returns the minimum of free entries of the given
     //! event pool.
@@ -539,16 +575,19 @@ public:
     //! event queue.
     static uint_fast16_t getQueueMin(uint_fast8_t const prio);
 
-    //! Internal QP implementation of the dynamic event allocator.
+    //! Internal QF implementation of creating new dynamic event.
     static QEvt *newX_(uint_fast16_t const evtSize,
                        uint_fast16_t const margin, enum_t const sig);
 
     //! Recycle a dynamic event.
     static void gc(QEvt const *e);
 
-    //! Internal QF implementation of the event reference creator
+    //! Internal QF implementation of creating new event reference.
     static QEvt const *newRef_(QEvt const * const e,
                                QEvt const * const evtRef);
+
+    //! Internal QF implementation of deleting event reference.
+    static void deleteRef_(QEvt const * const evtRef);
 
     //! Remove the active object from the framework.
     static void remove_(QActive * const a);
@@ -565,18 +604,40 @@ public:
     //! Clear a specified region of memory to zero.
     static void bzero(void * const start, uint_fast16_t len);
 
+// API to be used exclusively inside ISRs (useful in some QP ports)
+#ifdef QF_ISR_API
+#ifdef Q_SPY
+    static void publishFromISR_(QEvt const *e, void *par,
+                                void const *sender);
+    static void tickXfromISR_(uint_fast8_t const tickRate, void *par,
+                              void const * const sender);
+#else
+    static void publishFromISR_(QEvt const *e, void *par);
+    static void tickXfromISR_(uint_fast8_t const tickRate, void *par);
+#endif // Q_SPY
+
+    static QEvt *newXfromISR_(uint_fast16_t const evtSize,
+                              uint_fast16_t const margin, enum_t const sig);
+    static void gcFromISR(QEvt const *e);
+
+#endif // QF_ISR_API
+
 // to be used in QF ports only...
 private:
-
     //! heads of linked lists of time events, one for every clock tick rate
     static QTimeEvt timeEvtHead_[QF_MAX_TICK_RATE];
 
     friend class QActive;
     friend class QTimeEvt;
+    friend class QS;
 #ifdef qxk_h
     friend class QXThread;
 #endif // qxk_h
 };
+
+//! special value of margin that causes asserting failure in case
+//! event allocation or event posting fails
+uint_fast16_t const QF_NO_MARGIN = static_cast<uint_fast16_t>(0xFFFF);
 
 
 //****************************************************************************
@@ -591,7 +652,7 @@ private:
 ///
 class QTicker : public QActive {
 public:
-    QTicker(uint8_t const tickRate); // ctor
+    QTicker(uint_fast8_t const tickRate); // ctor
 
     virtual void init(QEvt const * const e);
     virtual void init(void) { this->init(static_cast<QEvt const *>(0)); }
@@ -627,7 +688,7 @@ public:
 
     #define Q_NEW(evtT_, sig_, ...) \
         (new(QP::QF::newX_(static_cast<uint_fast16_t>(sizeof(evtT_)), \
-                     static_cast<uint_fast16_t>(0), static_cast<enum_t>(0))) \
+                     QP::QF_NO_MARGIN, static_cast<enum_t>(0))) \
             evtT_((sig_),  ##__VA_ARGS__))
 
     #define Q_NEW_X(e_, evtT_, margin_, sig_, ...) do { \
@@ -643,8 +704,8 @@ public:
     //! Allocate a dynamic event.
     /// @description
     /// The macro calls the internal QF function QP::QF::newX_() with
-    /// margin == 0, which causes an assertion when the event cannot be
-    /// successfully allocated.
+    /// margin == QP::QF_NO_MARGIN, which causes an assertion when the event
+    /// cannot be successfully allocated.
     ///
     /// @param[in] evtT_ event type (class name) of the event to allocate
     /// @param[in] sig_  signal to assign to the newly allocated event
@@ -663,7 +724,7 @@ public:
     #define Q_NEW(evtT_, sig_) \
         (static_cast<evtT_ *>(QP::QF::newX_( \
                 static_cast<uint_fast16_t>(sizeof(evtT_)), \
-                static_cast<uint_fast16_t>(0), (sig_))))
+                QP::QF_NO_MARGIN, (sig_))))
 
     //! Allocate a dynamic event (non-asserting version).
     /// @description
@@ -672,7 +733,9 @@ public:
     ///
     /// @param[in] evtT_   event type (class name) of the event to allocate
     /// @param[in] margin_ number of events that must remain available
-    ///                    in the given pool after this allocation
+    ///                    in the given pool after this allocation. The
+    ///                    special value QP::QF_NO_MARGIN causes asserting
+    ///                    failure in case event allocation fails.
     /// @param[in] sig_    signal to assign to the newly allocated event
     ///
     /// @returns an event pointer cast to the type @p evtT_ or NULL if the
@@ -690,7 +753,6 @@ public:
     #define Q_NEW_X(e_, evtT_, margin_, sig_)  ((e_) = static_cast<evtT_ *>(\
         QP::QF::newX_(static_cast<uint_fast16_t>(sizeof(evtT_)),\
                       (margin_), (sig_))))
-
 #endif
 
 //! Create a new reference of the current event `e` */
@@ -730,7 +792,7 @@ public:
 /// @sa Q_NEW_REF()
 ///
 #define Q_DELETE_REF(evtRef_) do { \
-    QP::QF::gc((evtRef_)); \
+    QP::QF::deleteRef_((evtRef_)); \
     (evtRef_) = 0; \
 } while (false)
 
@@ -801,13 +863,13 @@ public:
     /// avoided.
     ///
     /// @note the pointer to the sender object is not necessarily a pointer
-    /// to an active object. In fact, if QACTIVE_POST() is called from an
+    /// to an active object. In fact, if QP::QActive::post() is called from an
     /// interrupt or other context, you can create a unique object just to
     /// unambiguously identify the sender of the event.
     ///
     /// @sa QP::QActive::post_()
     #define POST(e_, sender_) \
-        post_((e_), static_cast<uint_fast16_t>(0), (sender_))
+        post_((e_), QP::QF_NO_MARGIN, (sender_))
 
     //! Invoke the direct event posting facility QP::QActive::post_()
     //! without delivery guarantee.
@@ -817,7 +879,9 @@ public:
     ///
     /// @param[in]  e_      pointer to the event to post
     /// @param[in]  margin_ the minimum free slots in the queue, which
-    ///                     must still be available after posting the event
+    ///                     must still be available after posting the event.
+    ///                     The special value QP::QF_NO_MARGIN causes
+    ///                     asserting failure in case event posting fails.
     /// @param[in]  sender_ pointer to the sender object.
     ///
     /// @returns
@@ -834,7 +898,7 @@ public:
     ///
     /// @note
     /// The pointer to the sender object is not necessarily a pointer
-    /// to an active object. In fact, if QACTIVE_POST() is called from an
+    /// to an active object. In fact, if QP::QActive::post() is called from an
     /// interrupt or other context, you can create a unique object just to
     /// unambiguously identify the sender of the event.
     ///
@@ -846,7 +910,7 @@ public:
 #else
 
     #define PUBLISH(e_, dummy_)  publish_((e_))
-    #define POST(e_, dummy_)     post_((e_), static_cast<uint_fast16_t>(0))
+    #define POST(e_, dummy_)     post_((e_), QP::QF_NO_MARGIN)
     #define POST_X(e_, margin_, dummy_) post_((e_), (margin_))
     #define TICK_X(tickRate_, dummy_)   tickX_((tickRate_))
 
@@ -854,7 +918,7 @@ public:
 
 //! Invoke the system clock tick processing for rate 0
 /// @sa TICK_X()
-#define TICK(sender_) TICK_X(static_cast<uint8_t>(0), (sender_))
+#define TICK(sender_) TICK_X(static_cast<uint_fast8_t>(0), (sender_))
 
 #endif // qf_h
 

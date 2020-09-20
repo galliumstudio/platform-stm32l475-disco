@@ -1,9 +1,10 @@
 /// @file
-/// @brief QXK/C++ port to ARM Cortex-M, GNU-ARM toolset
+/// @brief Internal (package scope) QXK/C++ interface.
+/// @ingroup qxk
 /// @cond
 ///***************************************************************************
-/// Last updated for version 6.0.3
-/// Last updated on  2017-12-09
+/// Last updated for version 5.9.7
+/// Last updated on  2017-08-19
 ///
 ///                    Q u a n t u m     L e a P s
 ///                    ---------------------------
@@ -35,40 +36,32 @@
 ///***************************************************************************
 /// @endcond
 
-#ifndef qxk_port_h
-#define qxk_port_h
+#ifndef qxk_pkg_h
+#define qxk_pkg_h
 
-// determination if the code executes in the ISR context
-#define QXK_ISR_CONTEXT_() (QXK_get_IPSR() != static_cast<uint32_t>(0))
+namespace QP {
 
-__attribute__((always_inline))
-static inline uint32_t QXK_get_IPSR(void) {
-    uint32_t regIPSR;
-    __asm volatile ("mrs %0,ipsr" : "=r" (regIPSR));
-    return regIPSR;
-}
+//! timeout signals
+enum QXK_Timeouts {
+    QXK_DELAY_SIG = Q_USER_SIG,
+    QXK_QUEUE_SIG,
+    QXK_SEMA_SIG
+};
 
-// trigger the PendSV exception to pefrom the context switch
-#define QXK_CONTEXT_SWITCH_() \
-    (*Q_UINT2PTR_CAST(uint32_t, 0xE000ED04U) = \
-        static_cast<uint32_t>(1U << 28))
+} // namespace QP
 
-// QXK ISR entry and exit
-#define QXK_ISR_ENTRY() ((void)0)
+//****************************************************************************
+extern "C" {
 
-#define QXK_ISR_EXIT()  do { \
-    QF_INT_DISABLE(); \
-    if (QXK_sched_() != static_cast<uint_fast8_t>(0)) { \
-        *Q_UINT2PTR_CAST(uint32_t, 0xE000ED04U) = \
-            static_cast<uint32_t>(1U << 28); \
-    } \
-    QF_INT_ENABLE(); \
-} while (false)
+//! initialize the private stack of a given AO
+void QXK_stackInit_(void *thr, QP::QXThreadHandler handler,
+                    void *stkSto, uint_fast16_t stkSize);
 
-// initialization of the QXK kernel
-#define QXK_INIT() QXK_init()
-extern "C" void QXK_init(void);
+//! called when a thread function returns
+void QXK_threadRet_(void);
 
-#include "qxk.h" // QXK platform-independent public interface
+} // extern "C"
 
-#endif // qxk_port_h
+#include "qf_pkg.h"  // QF package-scope interface
+
+#endif // qxk_pkg_h

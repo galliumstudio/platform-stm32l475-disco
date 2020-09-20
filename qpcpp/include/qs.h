@@ -3,14 +3,14 @@
 /// @ingroup qs
 /// @cond
 ///***************************************************************************
-/// Last updated for version 5.6.2
-/// Last updated on  2016-03-30
+/// Last updated for version 6.3.8
+/// Last updated on  2019-01-24
 ///
-///                    Q u a n t u m     L e a P s
-///                    ---------------------------
-///                    innovating embedded systems
+///                    Q u a n t u m  L e a P s
+///                    ------------------------
+///                    Modern Embedded Software
 ///
-/// Copyright (C) Quantum Leaps, LLC. All rights reserved.
+/// Copyright (C) 2005-2019 Quantum Leaps, LLC. All rights reserved.
 ///
 /// This program is open source software: you can redistribute it and/or
 /// modify it under the terms of the GNU General Public License as published
@@ -31,7 +31,7 @@
 /// along with this program. If not, see <http://www.gnu.org/licenses/>.
 ///
 /// Contact information:
-/// http://www.state-machine.com
+/// https://www.state-machine.com
 /// mailto:info@state-machine.com
 ///***************************************************************************
 /// @endcond
@@ -75,7 +75,7 @@ enum QSpyRecords {
     // [0] QS session (not maskable)
     QS_EMPTY,             //!< QS record for cleanly starting a session
 
-    // [1] QEP records
+    // [1] SM records
     QS_QEP_STATE_ENTRY,   //!< a state was entered
     QS_QEP_STATE_EXIT,    //!< a state was exited
     QS_QEP_STATE_INIT,    //!< an initial transition was taken in a state
@@ -86,71 +86,90 @@ enum QSpyRecords {
     QS_QEP_DISPATCH,      //!< an event was dispatched (begin of RTC step)
     QS_QEP_UNHANDLED,     //!< an event was unhandled due to a guard
 
-    // [10] QF records
-    QS_QF_ACTIVE_ADD,     //!< an AO has been added to QF (started)
-    QS_QF_ACTIVE_REMOVE,  //!< an AO has been removed from QF (stopped)
+    // [10] AO records
+    QS_QF_ACTIVE_DEFER,   //!< AO deferred an event
+    QS_QF_ACTIVE_RECALL,  //!< AO recalled an event
     QS_QF_ACTIVE_SUBSCRIBE,  //!< an AO subscribed to an event
     QS_QF_ACTIVE_UNSUBSCRIBE,//!< an AO unsubscribed to an event
-    QS_QF_ACTIVE_POST_FIFO,  //!< an event was posted (FIFO) directly to an AO
-    QS_QF_ACTIVE_POST_LIFO,  //!< an event was posted (LIFO) directly to an AO
-    QS_QF_ACTIVE_GET, //!< an AO got an event and its queue is still not empty
+    QS_QF_ACTIVE_POST_FIFO,  //!< an event was posted (FIFO) directly to AO
+    QS_QF_ACTIVE_POST_LIFO,  //!< an event was posted (LIFO) directly to AO
+    QS_QF_ACTIVE_GET, //!< an AO got an event and its queue is not empty
     QS_QF_ACTIVE_GET_LAST,//!< an AO got an event and its queue is empty
-    QS_QF_EQUEUE_INIT,    //!< an event queue was initialized
+    QS_QF_ACTIVE_RECALL_ATTEMPT, //!< AO attempted to recall an event
+
+    // [19] EQ records
     QS_QF_EQUEUE_POST_FIFO,  //!< an event was posted (FIFO) to a raw queue
     QS_QF_EQUEUE_POST_LIFO,  //!< an event was posted (LIFO) to a raw queue
     QS_QF_EQUEUE_GET,     //!< get an event and queue still not empty
     QS_QF_EQUEUE_GET_LAST,//!< get the last event from the queue
-    QS_QF_MPOOL_INIT,     //!< a memory pool was initialized
-    QS_QF_MPOOL_GET,      //!< a memory block was removed from a memory pool
-    QS_QF_MPOOL_PUT,      //!< a memory block was returned to a memory pool
-    QS_QF_PUBLISH,        //!< an event was truly published to subscribers
-    QS_QF_RESERVED8,
+
+    QS_QF_RESERVED2,
+
+    // [24] MP records
+    QS_QF_MPOOL_GET,      //!< a memory block was removed from memory pool
+    QS_QF_MPOOL_PUT,      //!< a memory block was returned to memory pool
+
+    // [26] QF records
+    QS_QF_PUBLISH,        //!< an event was published
+    QS_QF_NEW_REF,        //!< new event reference was created
     QS_QF_NEW,            //!< new event creation
     QS_QF_GC_ATTEMPT,     //!< garbage collection attempt
     QS_QF_GC,             //!< garbage collection
     QS_QF_TICK,           //!< QP::QF::tickX() was called
+
+    // [32] TE records
     QS_QF_TIMEEVT_ARM,    //!< a time event was armed
     QS_QF_TIMEEVT_AUTO_DISARM, //!< a time event expired and was disarmed
     QS_QF_TIMEEVT_DISARM_ATTEMPT,//!< attempt to disarm a disarmed QTimeEvt
     QS_QF_TIMEEVT_DISARM, //!< true disarming of an armed time event
     QS_QF_TIMEEVT_REARM,  //!< rearming of a time event
     QS_QF_TIMEEVT_POST,   //!< a time event posted itself directly to an AO
-    QS_QF_TIMEEVT_CTR,    //!< a time event counter was requested
+
+    // [38] QF records
+    QS_QF_DELETE_REF,     //!< an event reference is about to be deleted
     QS_QF_CRIT_ENTRY,     //!< critical section was entered
     QS_QF_CRIT_EXIT,      //!< critical section was exited
     QS_QF_ISR_ENTRY,      //!< an ISR was entered
     QS_QF_ISR_EXIT,       //!< an ISR was exited
     QS_QF_INT_DISABLE,    //!< interrupts were disabled
     QS_QF_INT_ENABLE,     //!< interrupts were enabled
-    QS_QF_ACTIVE_POST_ATTEMPT, //!< attempt to post an evt to AO failed
-    QS_QF_EQUEUE_POST_ATTEMPT, //!< attempt to post an evt to QEQueue failed
-    QS_QF_MPOOL_GET_ATTEMPT,   //!< attempt to get a memory block failed
-    QS_QF_RESERVED1,
-    QS_QF_RESERVED0,
 
-    // [50] QK/QV records
+    // [45] AO records
+    QS_QF_ACTIVE_POST_ATTEMPT, //!< attempt to post an evt to AO failed
+
+    // [46] EQ records
+    QS_QF_EQUEUE_POST_ATTEMPT, //!< attempt to post an evt to QEQueue failed
+
+    // [47] MP records
+    QS_QF_MPOOL_GET_ATTEMPT,   //!< attempt to get a memory block failed
+
+    // [48] SC records
+    QS_MUTEX_LOCK,        //!< a mutex was locked
+    QS_MUTEX_UNLOCK,      //!< a mutex was unlocked
+
+    // [50] built-in scheduler records
     QS_SCHED_LOCK,        //!< scheduler was locked
     QS_SCHED_UNLOCK,      //!< scheduler was unlocked
     QS_SCHED_NEXT,        //!< scheduler found next task to execute
     QS_SCHED_IDLE,        //!< scheduler became idle
     QS_SCHED_RESUME,      //!< scheduler resumed previous task (not idle)
 
-    // [55] Additional QEP records
+    // [55] Additional SM records
     QS_QEP_TRAN_HIST,     //!< a tran to history was taken
     QS_QEP_TRAN_EP,       //!< a tran to entry point into a submachine
     QS_QEP_TRAN_XP,       //!< a tran to exit  point out of a submachine
-    QS_QEP_RESERVED1,
-    QS_QEP_RESERVED0,
 
-    // [60] Miscellaneous QS records
+    // [58] Miscellaneous QS records (not maskable)
+    QS_TEST_PAUSED,       //!< test has been paused
+    QS_TEST_PROBE_GET,    //!< reports that Test-Probe has been used
     QS_SIG_DICT,          //!< signal dictionary entry
     QS_OBJ_DICT,          //!< object dictionary entry
     QS_FUN_DICT,          //!< function dictionary entry
     QS_USR_DICT,          //!< user QS record dictionary entry
     QS_TARGET_INFO,       //!< reports the Target information
-    QS_RESERVED0,
+    QS_TARGET_DONE,       //!< reports completion of a user callback
     QS_RX_STATUS,         //!< reports QS data receive status
-    QS_TEST_STATUS,       //!< reports test status
+    QS_QUERY_DATA,        //!< reports the data from "current object" query
     QS_PEEK_DATA,         //!< reports the data from the PEEK query
     QS_ASSERT_FAIL,       //!< assertion failed in the code
 
@@ -158,14 +177,32 @@ enum QSpyRecords {
     QS_USER               //!< the first record available to QS users
 };
 
-//! Specification of all QS records for the QP::QS::filterOn() and
-//! QP::QS::filterOff()
-uint_fast8_t const QS_ALL_RECORDS = static_cast<uint_fast8_t>(0xFF);
+//! QS record groups for QS_FILTER_ON() and QS_FILTER_OFF()
+enum QSpyRecordGroups {
+    QS_ALL_RECORDS = 0xF0,//!< all maskable QS records
+    QS_SM_RECORDS,        //!< State Machine QS records
+    QS_AO_RECORDS,        //!< Active Object QS records
+    QS_EQ_RECORDS,        //!< Event Queues QS records
+    QS_MP_RECORDS,        //!< Memory Pools QS records
+    QS_TE_RECORDS,        //!< Time Events QS records
+    QS_QF_RECORDS,        //!< QF QS records
+    QS_SC_RECORDS,        //!< Scheduler QS records
+    QS_U0_RECORDS,        //!< User Group 70-79 records
+    QS_U1_RECORDS,        //!< User Group 80-89 records
+    QS_U2_RECORDS,        //!< User Group 90-99 records
+    QS_U3_RECORDS,        //!< User Group 100-109 records
+    QS_U4_RECORDS,        //!< User Group 110-124 records
+    QS_UA_RECORDS         //!< All User records
+};
 
-//! Constant representing End-Of-Data condition returned from the
-//! QP::QS::getByte() function.
-uint16_t const QS_EOD  = static_cast<uint16_t>(0xFFFF);
-
+//! QS user record group offsets
+enum QSpyUserRecords {
+    QS_USER0 = QS_USER,       //!< offset for User Group 0
+    QS_USER1 = QS_USER0 + 10, //!< offset for User Group 1
+    QS_USER2 = QS_USER1 + 10, //!< offset for User Group 2
+    QS_USER3 = QS_USER2 + 10, //!< offset for User Group 3
+    QS_USER4 = QS_USER3 + 10  //!< offset for User Group 4
+};
 
 #if (QS_TIME_SIZE == 1)
     typedef uint8_t QSTimeCtr;
@@ -175,11 +212,16 @@ uint16_t const QS_EOD  = static_cast<uint16_t>(0xFFFF);
     #define QS_TIME_()   (QP::QS::u16_(QP::QS::onGetTime()))
 #elif (QS_TIME_SIZE == 4)
 
-    //! The type of the QS time stamp. This type determines the dynamic
-    //! range of QS time stamps
+    //! The size (in bytes) of the QS time stamp. Valid values: 1, 2, or 4;
+    //! default 4.
+    ///
+    /// @description
+    /// This macro can be defined in the QS port file (qs_port.h) to
+    /// configure the ::QSTimeCtr type. Here the macro is not defined so the
+    /// default of 4 byte is chosen.
     typedef uint32_t QSTimeCtr;
 
-    //! Internal macro to output time stamp to the QS record
+    //! Internal macro to output time stamp to a QS record
     #define QS_TIME_()   (QP::QS::u32_(QP::QS::onGetTime()))
 #else
     #error "QS_TIME_SIZE defined incorrectly, expected 1, 2, or 4"
@@ -188,7 +230,11 @@ uint16_t const QS_EOD  = static_cast<uint16_t>(0xFFFF);
 //! QS ring buffer counter and offset type
 typedef unsigned int QSCtr;
 
-//! Quantum Spy logging facilities
+//! Constant representing End-Of-Data condition returned from the
+//! QP::QS::getByte() function.
+uint16_t const QS_EOD  = static_cast<uint16_t>(0xFFFF);
+
+//! QS logging facilities
 /// @description
 /// This class groups together QS services. It has only static members and
 /// should not be instantiated.
@@ -306,7 +352,6 @@ public:
     }
 
     // QS buffer access ......................................................
-
     //! Byte-oriented interface to the QS data buffer.
     static uint16_t getByte(void);
 
@@ -327,12 +372,43 @@ public:
     //! Callback to obtain a timestamp for a QS record.
     static QSTimeCtr onGetTime(void);
 
-    //! Callback function to reset the target (to be implemented in the BSP)
+    //! callback function to reset the Target (to be implemented in the BSP)
     static void onReset(void);
 
     //! Callback function to execute user commands (to be implemented in BSP)
-    static void onCommand(uint8_t cmdId, uint32_t param);
+    static void onCommand(uint8_t cmdId,
+                          uint32_t param1, uint32_t param2, uint32_t param3);
 
+    //! internal function to handle incoming (QS-RX) packet
+    static void rxHandleGoodFrame_(uint8_t state);
+
+#ifdef Q_UTEST
+    //! callback to setup a unit test inside the Target
+    static void onTestSetup(void);
+
+    //! callback to teardown after a unit test inside the Target
+    static void onTestTeardown(void);
+
+    //! callback to "massage" the test event before dispatching/posting it
+    static void onTestEvt(QEvt *e);
+
+    // callback to examine an event that is about to be posted
+    static void onTestPost(void const *sender, QActive *recipient,
+                           QEvt const *e, bool status);
+
+    //! callback to run the test loop
+    static void onTestLoop(void);
+
+    //! internal function to process posted events during test
+    static void processTestEvts_(void);
+
+    //! internal function to process armed time events during test
+    static void tickX_(uint_fast8_t const tickRate, void const * const sender);
+
+    //! internal function to get the Test-Probe for a given API
+    static uint32_t getTestProbe_(void (* const api)(void));
+
+#endif // Q_UTEST
 
     //! Enumerates data formats recognized by QS
     /// @description
@@ -357,16 +433,35 @@ public:
         U32_HEX_T     //!< unsigned 32-bit integer in hex format
     };
 
+    //! Kinds of objects used in QS
+    enum QSpyObjKind {
+        SM_OBJ,       //!< state machine object for QEP
+        AO_OBJ,       //!< active object
+        MP_OBJ,       //!< event pool object
+        EQ_OBJ,       //!< raw queue object
+        TE_OBJ,       //!< time event object
+        AP_OBJ,       //!< generic Application-specific object
+        MAX_OBJ
+    };
+
+    enum OSpyObjCombnation {
+        SM_AO_OBJ = MAX_OBJ //!< combination of SM and AO
+    };
+
+    //! template for forcing cast of member functions for function
+    //! dictionaries and test probes.
+    template<typename T_OUT, typename T_IN>
+    static T_OUT force_cast(T_IN in) {
+        union {
+            T_IN  in;
+            T_OUT out;
+        } u = { in };
+        return u.out;
+    }
+
     // private QS attributes .................................................
-
-    uint8_t glbFilter[16];    //!< global on/off QS filter
-    void const *smObjFilter;  //!< state machine for QEP local filter
-    void const *aoObjFilter;  //!< active object for QF/QK local filter
-    void const *mpObjFilter;  //!<  event pool for QF local filter
-    void const *eqObjFilter;  //!<  raw queue for QF local filter
-    void const *teObjFilter;  //!<  time event for QF local filter
-    void const *apObjFilter;  //!<  generic object Application QF local filter
-
+    uint8_t glbFilter[16];          //!< global on/off QS filter
+    void const *locFilter[MAX_OBJ]; //!< local QS filters
     uint8_t *buf;     //!< pointer to the start of the ring buffer
     QSCtr    end;     //!< offset of the end of the ring buffer
     QSCtr    head;    //!< offset to where next byte will be inserted
@@ -381,10 +476,15 @@ public:
     static QS priv_;
 
     static struct QSrxPriv {
+        void *currObj[MAX_OBJ]; //!< current objects
         uint8_t *buf; //!< pointer to the start of the ring buffer
         QSCtr end;    //!< offset of the end of the ring buffer
         QSCtr head;   //!< offset to where next byte will be inserted
         QSCtr tail;   //!< offset of where next byte will be extracted
+#ifdef Q_UTEST
+        QP::QPSet readySet; //!< QUTEST ready-set of active objects
+        bool  inTestLoop;   //!< QUTest event loop is running
+#endif
     } rxPriv_;
 };
 
@@ -398,18 +498,59 @@ enum QSpyRxRecords {
     QS_RX_TICK,       //!< call QF_tick()
     QS_RX_PEEK,       //!< peek Target memory
     QS_RX_POKE,       //!< poke Target memory
-    QS_RX_RESERVED7,  //!< reserved for future use
-    QS_RX_RESERVED6,  //!< reserved for future use
-    QS_RX_RESERVED5,  //!< reserved for future use
-    QS_RX_RESERVED4,  //!< reserved for future use
+    QS_RX_FILL,       //!< fill Target memory
+    QS_RX_TEST_SETUP,    //!< test setup
+    QS_RX_TEST_TEARDOWN, //!< test teardown
+    QS_RX_TEST_PROBE, //!< set a Test-Probe in the Target
     QS_RX_GLB_FILTER, //!< set global filters in the Target
     QS_RX_LOC_FILTER, //!< set local  filters in the Target
     QS_RX_AO_FILTER,  //!< set local AO filter in the Target
-    QS_RX_RESERVED3,  //!< reserved for future use
-    QS_RX_RESERVED2,  //!< reserved for future use
-    QS_RX_RESERVED1,  //!< reserved for future use
+    QS_RX_CURR_OBJ,   //!< set the "current-object" in the Target
+    QS_RX_TEST_CONTINUE, //!< continue a test after QS_RX_TEST_WAIT()
+    QS_RX_QUERY_CURR,    //!< query the "current object" in the Target
     QS_RX_EVENT       //!< inject an event to the Target (post/publish)
 };
+
+
+//****************************************************************************
+#ifdef Q_UTEST
+
+//! Dummy Active Object class
+/// @description
+/// QActiveDummy is a test double for the role of collaborating active
+/// objects in QUTest unit testing.
+///
+class QActiveDummy : public QActive {
+public:
+    QActiveDummy(void); // ctor
+
+    virtual void start(uint_fast8_t const prio,
+                       QEvt const *qSto[], uint_fast16_t const qLen,
+                       void * const stkSto, uint_fast16_t const stkSize,
+                       QEvt const * const ie);
+
+    //! Overloaded start function (no initialization event)
+    virtual void start(uint_fast8_t const prio,
+                       QEvt const *qSto[], uint_fast16_t const qLen,
+                       void * const stkSto, uint_fast16_t const stkSize)
+    {
+        this->start(prio, qSto, qLen, stkSto, stkSize,
+                    static_cast<QEvt const *>(0));
+    }
+
+    virtual void init(QEvt const * const e);
+    virtual void init(void) { this->init(static_cast<QEvt const *>(0)); }
+    virtual void dispatch(QEvt const * const e);
+    virtual bool post_(QEvt const * const e, uint_fast16_t const margin,
+                       void const * const sender);
+    virtual void postLIFO(QEvt const * const e);
+};
+
+enum QUTestUserRecords {
+    QUTEST_ON_POST = 124
+};
+
+#endif // Q_UTEST
 
 } // namespace QP
 
@@ -439,7 +580,8 @@ enum QSpyRxRecords {
 /// @usage
 /// The following example shows how to use QS filters:
 /// @include qs_filter.cpp
-#define QS_FILTER_ON(rec_)      (QP::QS::filterOn(static_cast<uint8_t>(rec_)))
+#define QS_FILTER_ON(rec_) \
+    (QP::QS::filterOn(static_cast<uint_fast8_t>(rec_)))
 
 //! Global filter OFF for a given record type @p rec.
 /// @description
@@ -447,7 +589,8 @@ enum QSpyRxRecords {
 /// if #Q_SPY is defined, or do nothing if #Q_SPY is not defined.
 ///
 /// @sa Example of using QS filters in #QS_FILTER_ON documentation
-#define QS_FILTER_OFF(rec_)    (QP::QS::filterOff(static_cast<uint8_t>(rec_)))
+#define QS_FILTER_OFF(rec_) \
+    (QP::QS::filterOff(static_cast<uint_fast8_t>(rec_)))
 
 //! Local Filter for a given state machine object @p obj_.
 /// @description
@@ -472,7 +615,8 @@ enum QSpyRxRecords {
 /// "Orthogonal Components".
 ///
 /// @sa Example of using QS filters in #QS_FILTER_ON documentation
-#define QS_FILTER_SM_OBJ(obj_)  (QP::QS::priv_.smObjFilter = (obj_))
+#define QS_FILTER_SM_OBJ(obj_) \
+    (QP::QS::priv_.locFilter[QP::QS::SM_OBJ] = (obj_))
 
 //! Local Filter for a given active object @p obj_.
 /// @description
@@ -486,13 +630,14 @@ enum QSpyRxRecords {
 /// filter is disabled by setting the active object pointer @p obj_ to NULL.@n
 /// @n
 /// The active object filter affects the following QS records:
-/// QP::QS_QF_ACTIVE_ADD, QP::QS_QF_ACTIVE_REMOVE, QP::QS_QF_ACTIVE_SUBSCRIBE,
-/// QP::QS_QF_ACTIVE_UNSUBSCRIBE, QP::QS_QF_ACTIVE_POST_FIFO,
-/// QP::QS_QF_ACTIVE_POST_LIFO, ::QS_QF_ACTIVE_GET, and
-/// QP::QS_QF_ACTIVE_GET_LAST.
+/// ::QS_QF_ACTIVE_DEFER, ::QS_QF_ACTIVE_RECALL, ::QS_QF_ACTIVE_SUBSCRIBE,
+/// ::QS_QF_ACTIVE_UNSUBSCRIBE, ::QS_QF_ACTIVE_POST, ::QS_QF_ACTIVE_POST_LIFO,
+/// ::QS_QF_ACTIVE_GET, ::QS_QF_ACTIVE_GET_LAST, and
+/// ::QS_QF_ACTIVE_RECALL_ATTEMPT.
 ///
 /// @sa Example of using QS filters in #QS_FILTER_ON documentation
-#define QS_FILTER_AO_OBJ(obj_)  (QP::QS::priv_.aoObjFilter = (obj_))
+#define QS_FILTER_AO_OBJ(obj_) \
+    (QP::QS::priv_.locFilter[QP::QS::AO_OBJ] = (obj_))
 
 //! Local Filter for a given memory pool object @p obj_.
 /// @description
@@ -507,10 +652,11 @@ enum QSpyRxRecords {
 /// filter is disabled by setting the memory pool pointer @p obj_ to NULL.@n
 /// @n
 /// The memory pool filter affects the following QS records:
-/// QP::QS_QF_MPOOL_INIT, QP::QS_QF_MPOOL_GET, and QP::QS_QF_MPOOL_PUT.
+/// QP::QS_QF_MPOOL_GET, and QP::QS_QF_MPOOL_PUT.
 ///
 /// @sa Example of using QS filters in QS_FILTER_ON() documentation
-#define QS_FILTER_MP_OBJ(obj_)  (QP::QS::priv_.mpObjFilter = (obj_))
+#define QS_FILTER_MP_OBJ(obj_) \
+    (QP::QS::priv_.locFilter[QP::QS::MP_OBJ] = (obj_))
 
 //! Filter for a given event queue object @p obj_.
 /// @description
@@ -524,12 +670,12 @@ enum QSpyRxRecords {
 /// filter is disabled by setting the event queue pointer @p obj_ to NULL.@n
 /// @n
 /// The event queue filter affects the following QS records:
-/// QP::QS_QF_EQUEUE_INIT, QP::QS_QF_EQUEUE_POST_FIFO,
-/// QP::QS_QF_EQUEUE_POST_LIFO, QP::QS_QF_EQUEUE_GET, and
-/// QP::QS_QF_EQUEUE_GET_LAST.
+/// QP::QS_QF_EQUEUE_POST_FIFO, QP::QS_QF_EQUEUE_POST_LIFO,
+/// QP::QS_QF_EQUEUE_GET, and QP::QS_QF_EQUEUE_GET_LAST.
 ///
 /// @sa Example of using QS filters in #QS_FILTER_ON documentation
-#define QS_FILTER_EQ_OBJ(obj_)  (QP::QS::priv_.eqObjFilter = (obj_))
+#define QS_FILTER_EQ_OBJ(obj_) \
+    (QP::QS::priv_.locFilter[QP::QS::EQ_OBJ] = (obj_))
 
 //! Local Filter for a given time event object @p obj_.
 /// @description
@@ -548,7 +694,8 @@ enum QSpyRxRecords {
 /// QP::QS_QF_TIMEEVT_REARM, and QP::QS_QF_TIMEEVT_POST.
 ///
 /// @sa Example of using QS filters in #QS_FILTER_ON documentation
-#define QS_FILTER_TE_OBJ(obj_)  (QP::QS::priv_.teObjFilter = (obj_))
+#define QS_FILTER_TE_OBJ(obj_) \
+    (QP::QS::priv_.locFilter[QP::QS::TE_OBJ] = (obj_))
 
 //! Local Filter for a generic application object @p obj_.
 /// @description
@@ -563,7 +710,8 @@ enum QSpyRxRecords {
 /// to NULL.
 ///
 /// @sa Example of using QS filters in #QS_FILTER_ON documentation
-#define QS_FILTER_AP_OBJ(obj_)  (QP::QS::priv_.apObjFilter = (obj_))
+#define QS_FILTER_AP_OBJ(obj_) \
+    (QP::QS::priv_.locFilter[QP::QS::AP_OBJ] = (obj_))
 
 
 //****************************************************************************
@@ -579,9 +727,9 @@ enum QSpyRxRecords {
 
 //! Begin a QS user record without entering critical section.
 #define QS_BEGIN_NOCRIT(rec_, obj_) \
-    if (QS_GLB_FILTER_(rec_) \
-        && ((QP::QS::priv_.apObjFilter == static_cast<void *>(0)) \
-            || (QP::QS::priv_.apObjFilter == (obj_)))) \
+    if (QS_GLB_FILTER_(rec_) && \
+        ((QP::QS::priv_.locFilter[QP::QS::AP_OBJ] == static_cast<void *>(0)) \
+            || (QP::QS::priv_.locFilter[QP::QS::AP_OBJ] == (obj_)))) \
     { \
         QP::QS::beginRec(static_cast<uint_fast8_t>(rec_)); \
         QS_TIME_();
@@ -590,18 +738,24 @@ enum QSpyRxRecords {
 #define QS_END_NOCRIT() \
     QS_END_NOCRIT_()
 
+
+#ifndef QS_REC_DONE
+    //! macro to hook up user code when a QS record is produced
+    #define QS_REC_DONE() ((void)0)
+#endif // QS_REC_DONE
+
 // QS-specific critical section ..............................................
 #ifdef QS_CRIT_ENTRY // separate QS critical section defined?
 
 #ifndef QS_CRIT_STAT_TYPE
     #define QS_CRIT_STAT_
     #define QS_CRIT_ENTRY_()    QS_CRIT_ENTRY(dummy)
-    #define QS_CRIT_EXIT_()     QS_CRIT_EXIT(dummy)
+    #define QS_CRIT_EXIT_()     QS_CRIT_EXIT(dummy); QS_REC_DONE()
 #else
     #define QS_CRIT_STAT_       QS_CRIT_STAT_TYPE critStat_;
     #define QS_CRIT_ENTRY_()    QS_CRIT_ENTRY(critStat_)
-    #define QS_CRIT_EXIT_()     QS_CRIT_EXIT(critStat_)
-#endif // QS_CRIT_ENTRY
+    #define QS_CRIT_EXIT_()     QS_CRIT_EXIT(critStat_); QS_REC_DONE()
+#endif // QS_CRIT_STAT_TYPE
 
 #else // separate QS critical section not defined--use the QF definition
 #ifndef QF_CRIT_STAT_TYPE
@@ -634,15 +788,15 @@ enum QSpyRxRecords {
     /// invokes #QF_CRIT_EXIT passing the key variable as the parameter.
     /// Otherwise #QF_CRIT_EXIT is invoked with a dummy parameter.
     /// @sa #QF_CRIT_EXIT
-    #define QS_CRIT_EXIT_()     QF_CRIT_EXIT(dummy)
+    #define QS_CRIT_EXIT_()     QF_CRIT_EXIT(dummy); QS_REC_DONE()
 
-#else
+#else  // simple unconditional interrupt disabling used
     #define QS_CRIT_STAT_       QF_CRIT_STAT_TYPE critStat_;
     #define QS_CRIT_ENTRY_()    QF_CRIT_ENTRY(critStat_)
-    #define QS_CRIT_EXIT_()     QF_CRIT_EXIT(critStat_)
-#endif // QF_CRIT_STAT_TYPE
+    #define QS_CRIT_EXIT_()     QF_CRIT_EXIT(critStat_); QS_REC_DONE()
+#endif // simple unconditional interrupt disabling used
 
-#endif // QS_CRIT_ENTRY
+#endif // separate QS critical section not defined
 
 //! Begin a user QS record with entering critical section.
 /// @description
@@ -655,9 +809,9 @@ enum QSpyRxRecords {
 ///
 /// @include qs_user.cpp
 #define QS_BEGIN(rec_, obj_) \
-    if (QS_GLB_FILTER_(rec_) \
-        && ((QP::QS::priv_.apObjFilter == static_cast<void *>(0)) \
-            || (QP::QS::priv_.apObjFilter == (obj_)))) \
+    if (QS_GLB_FILTER_(rec_) && \
+        ((QP::QS::priv_.locFilter[QP::QS::AP_OBJ] == static_cast<void *>(0)) \
+            || (QP::QS::priv_.locFilter[QP::QS::AP_OBJ] == (obj_)))) \
     { \
         QS_CRIT_STAT_ \
         QS_CRIT_ENTRY_(); \
@@ -737,6 +891,9 @@ enum QSpyRxRecords {
 //! Internal QS macro to output an unformatted uint32_t data element
 #define QS_U32_(data_)       (QP::QS::u32_(static_cast<uint32_t>(data_)))
 
+//! Internal QS macro to output a zero-terminated ASCII string
+/// data element
+#define QS_STR_(msg_)        (QP::QS::str_(msg_))
 
 #if (QS_OBJ_PTR_SIZE == 1)
     #define QS_OBJ_(obj_)    (QP::QS::u8_(reinterpret_cast<uint8_t>(obj_)))
@@ -774,10 +931,6 @@ enum QSpyRxRecords {
     /// If the size is not defined the size of pointer is assumed 4-bytes.
     #define QS_FUN_(fun_)    (QP::QS::u32_(reinterpret_cast<uint32_t>(fun_)))
 #endif
-
-//! Internal QS macro to output a zero-terminated ASCII string
-/// data element
-#define QS_STR_(msg_)        (QP::QS::str_(msg_))
 
 
 //****************************************************************************
@@ -846,32 +999,65 @@ enum QSpyRxRecords {
 
 
 #if (QS_OBJ_PTR_SIZE == 1)
-    #define QS_OBJ(obj_)        (QP::QS::u8(QS_OBJ_T, (uint8_t)(obj_)))
+    #define QS_OBJ(obj_) \
+        (QP::QS::u8(QP::QS::OBJ_T, reinterpret_cast<uint8_t>(obj_)))
 #elif (QS_OBJ_PTR_SIZE == 2)
-    #define QS_OBJ(obj_)        (QP::QS::u16(QS_OBJ_T, (uint16_t)(obj_)))
+    #define QS_OBJ(obj_) \
+        (QP::QS::u16(QP::QS::OBJ_T, reinterpret_cast<uint16_t>(obj_)))
 #elif (QS_OBJ_PTR_SIZE == 4)
-    #define QS_OBJ(obj_)        (QP::QS::u32(QS_OBJ_T, (uint32_t)(obj_)))
+    #define QS_OBJ(obj_) \
+        (QP::QS::u32(QP::QS::OBJ_T, reinterpret_cast<uint32_t>(obj_)))
 #elif (QS_OBJ_PTR_SIZE == 8)
-    #define QS_OBJ(obj_)        (QP::QS::u64(QS_OBJ_T, (uint64_t)(obj_)))
+    #define QS_OBJ(obj_) \
+        (QP::QS::u64(QP::QS::OBJ_T, reinterpret_cast<uint64_t>(obj_)))
 #else
     //! Output formatted object pointer to the QS record
-    #define QS_OBJ(obj_)        (QP::QS::u32(QS_OBJ_T, (uint32_t)(obj_)))
+    #define QS_OBJ(obj_) \
+        (QP::QS::u32(QP::QS::OBJ_T, reinterpret_cast<uint32_t>(obj_)))
 #endif
 
 
 #if (QS_FUN_PTR_SIZE == 1)
-    #define QS_FUN(fun_)        (QP::QS::u8(QS_FUN_T, (uint8_t)(fun_)))
+    #define QS_FUN(fun_) \
+        (QP::QS::u8(QP::QS::FUN_T, reinterpret_cast<uint8_t>(fun_)))
 #elif (QS_FUN_PTR_SIZE == 2)
-    #define QS_FUN(fun_)        (QP::QS::u16(QS_FUN_T, (uint16_t)(fun_)))
+    #define QS_FUN(fun_) \
+        (QP::QS::u16(QP::QS::FUN_T, reinterpret_cast<uint16_t>(fun_)))
 #elif (QS_FUN_PTR_SIZE == 4)
-    #define QS_FUN(fun_)        (QP::QS::u32(QS_FUN_T, (uint32_t)(fun_)))
+    #define QS_FUN(fun_) \
+        (QP::QS::u32(QP::QS::FUN_T, reinterpret_cast<uint32_t>(fun_)))
 #elif (QS_FUN_PTR_SIZE == 8)
-    #define QS_FUN(fun_)        (QP::QS::u64(QS_FUN_T, (uint64_t)(fun_)))
+    #define QS_FUN(fun_) \
+        (QP::QS::u64(QP::QS::FUN_T, reinterpret_cast<uint64_t>(fun_)))
 #else
     //! Output formatted function pointer to the QS record
-    #define QS_FUN(fun_)        (QP::QS::u32(QS_FUN_T, (uint32_t)(fun_)))
+    #define QS_FUN(fun_) \
+        (QP::QS::u32(QP::QS::FUN_T, reinterpret_cast<uint32_t>(fun_)))
 #endif
 
+
+#if (Q_SIGNAL_SIZE == 1)
+    #define QS_SIG(sig_, obj_) \
+        QP::QS::u8(QP::QS::SIG_T, static_cast<uint8_t>(sig_)); \
+        QS_OBJ_(obj_)
+#elif (Q_SIGNAL_SIZE == 2)
+    #define QS_SIG(sig_, obj_) \
+        QP::QS::u16(QP::QS::SIG_T, static_cast<uint16_t>(sig_)); \
+        QS_OBJ_(obj_)
+#elif (Q_SIGNAL_SIZE == 4)
+    #define QS_SIG(sig_, obj_) \
+        QP::QS::u32(QP::QS::SIG_T, static_cast<uint32_t>(sig_)); \
+        QS_OBJ_(obj_)
+#else
+    //! Output formatted event signal (of type ::QSignal) and
+    //! the state machine object to the user QS record
+    #define QS_SIG(sig_, obj_) \
+        QP::QS::u16(QP::QS::SIG_T, static_cast<uint16_t>(sig_)); \
+        QS_OBJ_(obj_)
+#endif
+
+
+//////////////////////////////////////////////////////////////////////////////
 
 //! Output signal dictionary record
 ///
@@ -913,10 +1099,8 @@ enum QSpyRxRecords {
 /// available.
 /// @include qs_sigLog0.txt
 #define QS_SIG_DICTIONARY(sig_, obj_) do { \
-    if (QS_GLB_FILTER_(QP::QS_SIG_DICT)) { \
-        static char_t const sig_name_[] = #sig_; \
-        QP::QS::sig_dict((sig_), (obj_), &sig_name_[0]); \
-    } \
+    static char_t const sig_name_[] = #sig_; \
+    QP::QS::sig_dict((sig_), (obj_), &sig_name_[0]); \
 } while (false)
 
 //! Output object dictionary record
@@ -932,10 +1116,8 @@ enum QSpyRxRecords {
 /// for the Table active object:
 /// @include qs_objDic.cpp
 #define QS_OBJ_DICTIONARY(obj_) do { \
-    if (QS_GLB_FILTER_(QP::QS_OBJ_DICT)) { \
-        static char_t const obj_name_[] = #obj_; \
-        QP::QS::obj_dict((obj_), &obj_name_[0]); \
-    } \
+    static char_t const obj_name_[] = #obj_; \
+    QP::QS::obj_dict((obj_), &obj_name_[0]); \
 } while (false)
 
 //! Output function dictionary record
@@ -950,10 +1132,8 @@ enum QSpyRxRecords {
 /// The example from #QS_SIG_DICTIONARY shows the definition of a function
 /// dictionary.
 #define QS_FUN_DICTIONARY(fun_) do { \
-    if (QS_GLB_FILTER_(QP::QS_FUN_DICT)) { \
-        static char_t const fun_name_[] = #fun_; \
-        QP::QS::fun_dict((void (*)(void))(fun_), &fun_name_[0]); \
-    } \
+    static char_t const fun_name_[] = #fun_; \
+    QP::QS::fun_dict(QP::QS::force_cast<void(*)(void)>(fun_),&fun_name_[0]); \
 } while (false)
 
 //! Output user QS record dictionary record
@@ -961,10 +1141,8 @@ enum QSpyRxRecords {
 /// A user QS record dictionary record associates the numerical value of a
 /// user record with the human-readable identifier.
 #define QS_USR_DICTIONARY(rec_) do { \
-    if (QS_GLB_FILTER_(QP::QS_USR_DICT)) { \
-        static char_t const usr_name_[] = #rec_; \
-        QP::QS::usr_dict((rec_), &usr_name_[0]); \
-    } \
+    static char_t const usr_name_[] = #rec_; \
+    QP::QS::usr_dict((rec_), &usr_name_[0]); \
 } while (false)
 
 //! Output the assertion failure trace record
@@ -973,12 +1151,13 @@ enum QSpyRxRecords {
         static_cast<void *>(0), static_cast<void *>(0)) \
         QS_TIME_(); \
         QS_U16_(static_cast<uint16_t>(loc_)); \
-        QS_STR_(module_); \
+        QS_STR_(((module_) != static_cast<char_t *>(0)) ? (module_) : "?"); \
     QS_END_NOCRIT_() \
     QP::QS::onFlush(); \
     for (uint32_t volatile delay_ctr_ = (delay_);  \
          delay_ctr_ > static_cast<uint32_t>(0); --delay_ctr_) \
     {} \
+    QP::QS::onCleanup(); \
 } while (false)
 
 //! Flush the QS trace data to the host
@@ -1026,4 +1205,46 @@ enum QSpyRxRecords {
 //! Execute an action that is only necessary for QS output
 #define QF_QS_ACTION(act_)      (act_)
 
+//! macro to handle the QS output from the application
+//! NOTE: if this macro is used, the application must define QS_output().
+#define QS_OUTPUT()   (QS_output())
+
+//! macro to handle the QS-RX input to the application
+//! NOTE: if this macro is used, the application must define QS_rx_input().
+#define QS_RX_INPUT() (QS_rx_input())
+
+
+//****************************************************************************
+// Macros for use in QUTest only
+
+#ifdef Q_UTEST
+    //! QS macro to define the Test-Probe for a given @p fun_
+    #define QS_TEST_PROBE_DEF(fun_) \
+        uint32_t const qs_tp_ = \
+            QP::QS::getTestProbe_(QP::QS::force_cast<void (*)(void)>(fun_));
+
+    //! QS macro to apply a Test-Probe
+    #define QS_TEST_PROBE(code_) \
+        if (qs_tp_ != static_cast<uint32_t>(0)) { code_ }
+
+    //! QS macro to apply a Test-Probe
+    #define QS_TEST_PROBE_ID(id_, code_) \
+        if (qs_tp_ == static_cast<uint32_t>(id_)) { code_ }
+
+    //! QS macro to pause test execution and enter the test event loop
+    #define QS_TEST_PAUSE() do { \
+        QP::QS::beginRec(static_cast<uint_fast8_t>(QP::QS_TEST_PAUSED)); \
+        QP::QS::endRec(); \
+        QP::QS::onTestLoop(); \
+    } while (false)
+
+#else
+    // dummy definitions when not building for QUTEST
+    #define QS_TEST_PROBE_DEF(fun_)
+    #define QS_TEST_PROBE(code_)
+    #define QS_TEST_PROBE_ID(id_, code_)
+    #define QS_TEST_PAUSE()  ((void)0)
+#endif // Q_UTEST
+
 #endif // qs_h
+

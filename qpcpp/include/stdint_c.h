@@ -1,15 +1,20 @@
 /// @file
-/// @brief QXK/C++ port to ARM Cortex-M, GNU-ARM toolset
+/// @brief Macros for casting strongly-typed integer constants.
+///
+/// @description This header file provides the standard C99 and C++11
+/// macros of the form UINT8_C(), UINT_FAST8_C(), etc. for building
+/// strongly-typed constants of standard integers from <stdint.h>.
+///
 /// @cond
 ///***************************************************************************
-/// Last updated for version 6.0.3
-/// Last updated on  2017-12-09
+/// Last updated for version 6.2.0
+/// Last updated on  2018-03-16
 ///
 ///                    Q u a n t u m     L e a P s
 ///                    ---------------------------
 ///                    innovating embedded systems
 ///
-/// Copyright (C) Quantum Leaps, LLC. All rights reserved.
+/// Copyright (C) 2002-2018 Quantum Leaps. All rights reserved.
 ///
 /// This program is open source software: you can redistribute it and/or
 /// modify it under the terms of the GNU General Public License as published
@@ -30,45 +35,53 @@
 /// along with this program. If not, see <http://www.gnu.org/licenses/>.
 ///
 /// Contact information:
-/// https://state-machine.com
+/// https://www.state-machine.com
 /// mailto:info@state-machine.com
 ///***************************************************************************
 /// @endcond
 
-#ifndef qxk_port_h
-#define qxk_port_h
+#ifndef stdint_c_h
+#define stdint_c_h
 
-// determination if the code executes in the ISR context
-#define QXK_ISR_CONTEXT_() (QXK_get_IPSR() != static_cast<uint32_t>(0))
+#ifndef UINT8_C
+#define UINT8_C(x_)        (static_cast<std::uint8_t>(x_))
+#endif
 
-__attribute__((always_inline))
-static inline uint32_t QXK_get_IPSR(void) {
-    uint32_t regIPSR;
-    __asm volatile ("mrs %0,ipsr" : "=r" (regIPSR));
-    return regIPSR;
-}
+#ifndef INT8_C
+#define INT8_C(x_)         (static_cast<std::int8_t>(x_))
+#endif
 
-// trigger the PendSV exception to pefrom the context switch
-#define QXK_CONTEXT_SWITCH_() \
-    (*Q_UINT2PTR_CAST(uint32_t, 0xE000ED04U) = \
-        static_cast<uint32_t>(1U << 28))
+#ifndef UINT_FAST8_C
+#define UINT_FAST8_C(x_)   (static_cast<std::uint_fast8_t>(x_))
+#endif
 
-// QXK ISR entry and exit
-#define QXK_ISR_ENTRY() ((void)0)
+#ifndef INT_FAST8_C
+#define INT_FAST8_C(x_)    (static_cast<std::int_fast8_t>(x_))
+#endif
 
-#define QXK_ISR_EXIT()  do { \
-    QF_INT_DISABLE(); \
-    if (QXK_sched_() != static_cast<uint_fast8_t>(0)) { \
-        *Q_UINT2PTR_CAST(uint32_t, 0xE000ED04U) = \
-            static_cast<uint32_t>(1U << 28); \
-    } \
-    QF_INT_ENABLE(); \
-} while (false)
+#ifndef UINT16_C
+#define UINT16_C(x_)       (static_cast<std::uint16_t>(x_))
+#endif
 
-// initialization of the QXK kernel
-#define QXK_INIT() QXK_init()
-extern "C" void QXK_init(void);
+#ifndef INT16_C
+#define INT16_C(x_)        (static_cast<std::int16_t>(x_))
+#endif
 
-#include "qxk.h" // QXK platform-independent public interface
+#ifndef UINT_FAST16_C
+#define UINT_FAST16_C(x_)  (static_cast<std::uint_fast16_t>(x_))
+#endif
 
-#endif // qxk_port_h
+#ifndef UINT32_C
+#define UINT32_C(x_)       (static_cast<std::uint32_t>(x_))
+#endif
+
+#ifndef INT32_C
+#define INT32_C(x_)        (static_cast<std::int32_t>(x_))
+#endif
+
+#ifndef UINT_FAST32_C
+#define UINT_FAST32_C(x_)  (static_cast<std::uint_fast32_t>(x_))
+#endif
+
+#endif // stdint_c_h
+

@@ -1,15 +1,15 @@
 /// @file
-/// @brief QXK/C++ port to ARM Cortex-M, GNU-ARM toolset
+/// @brief QP::QActive::QActive() definition
 /// @cond
 ///***************************************************************************
-/// Last updated for version 6.0.3
-/// Last updated on  2017-12-09
+/// Last updated for version 6.2.0
+/// Last updated on  2018-03-16
 ///
 ///                    Q u a n t u m     L e a P s
 ///                    ---------------------------
 ///                    innovating embedded systems
 ///
-/// Copyright (C) Quantum Leaps, LLC. All rights reserved.
+/// Copyright (C) 2002-2018 Quantum Leaps. All rights reserved.
 ///
 /// This program is open source software: you can redistribute it and/or
 /// modify it under the terms of the GNU General Public License as published
@@ -30,45 +30,31 @@
 /// along with this program. If not, see <http://www.gnu.org/licenses/>.
 ///
 /// Contact information:
-/// https://state-machine.com
+/// https://www.state-machine.com
 /// mailto:info@state-machine.com
 ///***************************************************************************
 /// @endcond
 
-#ifndef qxk_port_h
-#define qxk_port_h
+#define QP_IMPL           // this is QP implementation
+#include "qf_port.h"      // QF port
 
-// determination if the code executes in the ISR context
-#define QXK_ISR_CONTEXT_() (QXK_get_IPSR() != static_cast<uint32_t>(0))
+namespace QP {
 
-__attribute__((always_inline))
-static inline uint32_t QXK_get_IPSR(void) {
-    uint32_t regIPSR;
-    __asm volatile ("mrs %0,ipsr" : "=r" (regIPSR));
-    return regIPSR;
+//****************************************************************************
+QActive::QActive(QStateHandler const initial)
+  : QHsm(initial),
+    m_prio(static_cast<uint8_t>(0))
+{
+    m_state.fun = Q_STATE_CAST(&QHsm::top);
+
+#ifdef QF_OS_OBJECT_TYPE
+    QF::bzero(&m_osObject, static_cast<uint_fast16_t>(sizeof(m_osObject)));
+#endif
+
+#ifdef QF_THREAD_TYPE
+    QF::bzero(&m_thread, static_cast<uint_fast16_t>(sizeof(m_thread)));
+#endif
 }
 
-// trigger the PendSV exception to pefrom the context switch
-#define QXK_CONTEXT_SWITCH_() \
-    (*Q_UINT2PTR_CAST(uint32_t, 0xE000ED04U) = \
-        static_cast<uint32_t>(1U << 28))
+} // namespace QP
 
-// QXK ISR entry and exit
-#define QXK_ISR_ENTRY() ((void)0)
-
-#define QXK_ISR_EXIT()  do { \
-    QF_INT_DISABLE(); \
-    if (QXK_sched_() != static_cast<uint_fast8_t>(0)) { \
-        *Q_UINT2PTR_CAST(uint32_t, 0xE000ED04U) = \
-            static_cast<uint32_t>(1U << 28); \
-    } \
-    QF_INT_ENABLE(); \
-} while (false)
-
-// initialization of the QXK kernel
-#define QXK_INIT() QXK_init()
-extern "C" void QXK_init(void);
-
-#include "qxk.h" // QXK platform-independent public interface
-
-#endif // qxk_port_h

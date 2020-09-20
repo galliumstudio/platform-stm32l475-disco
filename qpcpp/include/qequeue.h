@@ -3,14 +3,14 @@
 /// @ingroup qf
 /// @cond
 ///***************************************************************************
-/// Last updated for version 5.8.0
-/// Last updated on  2016-11-19
+/// Last updated for version 6.3.6
+/// Last updated on  2018-10-04
 ///
-///                    Q u a n t u m     L e a P s
-///                    ---------------------------
-///                    innovating embedded systems
+///                    Q u a n t u m  L e a P s
+///                    ------------------------
+///                    Modern Embedded Software
 ///
-/// Copyright (C) Quantum Leaps, LLC. All rights reserved.
+/// Copyright (C) 2005-2018 Quantum Leaps, LLC. All rights reserved.
 ///
 /// This program is open source software: you can redistribute it and/or
 /// modify it under the terms of the GNU General Public License as published
@@ -31,7 +31,7 @@
 /// along with this program. If not, see <http://www.gnu.org/licenses/>.
 ///
 /// Contact information:
-/// http://www.state-machine.com
+/// https://www.state-machine.com
 /// mailto:info@state-machine.com
 ///***************************************************************************
 /// @endcond
@@ -60,6 +60,10 @@
     #define QF_EQUEUE_CTR_SIZE 1
 #endif
 
+// Gallium
+namespace FW {
+    class Timer;
+}
 
 namespace QP {
 
@@ -69,11 +73,11 @@ namespace QP {
     /// @description
     /// The dynamic range of this data type determines the maximum length
     /// of the ring buffer managed by the native QF event queue.
-    typedef uint_fast8_t QEQueueCtr;
+    typedef uint8_t QEQueueCtr;
 #elif (QF_EQUEUE_CTR_SIZE == 2)
-    typedef uint_fast16_t QEQueueCtr;
+    typedef uint16_t QEQueueCtr;
 #elif (QF_EQUEUE_CTR_SIZE == 4)
-    typedef uint_fast32_t QEQueueCtr;
+    typedef uint32_t QEQueueCtr;
 #else
     #error "QF_EQUEUE_CTR_SIZE defined incorrectly, expected 1, 2, or 4"
 #endif
@@ -224,6 +228,21 @@ public:
         return m_nFree;
     }
 
+    //! "raw" thread-safe QF event queue operation for obtaining the minimum
+    //! number of free entries ever in the queue (a.k.a. "low-watermark").
+    ///
+    /// @description
+    /// This operation needs to be used with caution because the
+    /// "low-watermark" can change unexpectedly. The main intent for using
+    /// this operation is to get an idea of queue usage to size the queue
+    /// adequately.
+    ///
+    /// @returns the minimum number of free entries ever in the queue
+    /// since init.
+    QEQueueCtr getNMin(void) const {
+        return m_nMin;
+    }
+
     //! "raw" thread-safe QF event queue operation to find out if the queue
     //! is empty
     /// @note
@@ -249,6 +268,11 @@ private:
     friend class QActive;
     friend class QXThread;
     friend class QTicker;
+#ifdef Q_UTEST
+    friend class QS;
+#endif // Q_UTEST
+    // Gallium
+    friend class FW::Timer;
 };
 
 } // namespace QP

@@ -41,6 +41,7 @@
 #include <stdint.h>  // Exact-width types. WG14/N843 C99 Standard
 
 #define Q_EVT_CTOR   // Gallium - added
+#define QF_TIMEEVT_CTR_SIZE 4 // Gallium - added
 
 #include "qep.h"     // QEP platform-independent public interface
 
