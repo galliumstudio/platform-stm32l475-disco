@@ -25,7 +25,7 @@ def ReplaceHeader(sourceFile, licenseFile):
  
 subdir = ['src', 'include', 'framework'] 
 fileExt = ['*.cpp', '*.c', '*.h']
-exclude = ['_write.c', '_hal_conf.h']
+exclude = ['_write.c', 'stm32l4xx_hal_conf.h']
   
 def IsExcluded(fileName):
     for exFile in exclude:
