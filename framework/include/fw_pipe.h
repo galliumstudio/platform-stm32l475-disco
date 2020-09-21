@@ -96,9 +96,14 @@ public:
     }
     uint32_t GetDiff(uint32_t a, uint32_t b) { return (a - b) & m_mask; }
     uint32_t GetAddr(uint32_t index) { return reinterpret_cast<uint32_t>(&m_stor[index & m_mask]); }
+    Type&    GetRef(uint32_t index) { return m_stor[index & m_mask]; }
     uint32_t GetWriteAddr() { return GetAddr(m_writeIndex); }
+    Type&    GetWriteRef() { return GetRef(m_writeIndex); }
     uint32_t GetReadAddr() { return GetAddr(m_readIndex); }
-    uint32_t GetMaxAddr() { return GetAddr(m_mask); }
+    Type&    GetReadRef() { return GetRef(m_readIndex); }
+    // Returns one byte past the max buffer address. Important - It is not valid to write to /read from this address.
+    uint32_t GetEndAddr() { return reinterpret_cast<uint32_t>(&m_stor[m_mask + 1]); }
+    uint32_t GetBufSize() { return (m_mask + 1); }
     void IncWriteIndex(uint32_t count) {
         QF_CRIT_STAT_TYPE crit;
         QF_CRIT_ENTRY(crit);
@@ -106,6 +111,18 @@ public:
         QF_CRIT_EXIT(crit);
     }
     void IncReadIndex(uint32_t count) {
+        QF_CRIT_STAT_TYPE crit;
+        QF_CRIT_ENTRY(crit);
+        IncIndex(m_readIndex, count);
+        QF_CRIT_EXIT(crit);
+    }
+    void IncWriteIndexNoCrit(uint32_t count) {
+        QF_CRIT_STAT_TYPE crit;
+        QF_CRIT_ENTRY(crit);
+        IncIndex(m_writeIndex, count);
+        QF_CRIT_EXIT(crit);
+    }
+    void IncReadIndexNoCrit(uint32_t count) {
         QF_CRIT_STAT_TYPE crit;
         QF_CRIT_ENTRY(crit);
         IncIndex(m_readIndex, count);
@@ -181,8 +198,75 @@ public:
         return count;
     }
 
+    // Performs the cache operation passed in on the read buffer for the specified count (in unit of T).
+    // The callback function will be called once or twice to receive a starting address and byte len to operate on.
+    // The operation can be Clean (memory to device) or Clean-and-invalidate (device to memory).
+    // Important - Cache line alignment (e.g. 32 bytes for Cortex-M7) is not handled by this function. It must be done
+    // by the callback function.
+    void CacheOp(void (*op)(uint32_t addr, uint32_t len), uint32_t count) {
+        QF_CRIT_STAT_TYPE crit;
+        QF_CRIT_ENTRY(crit);
+        CacheOpNoCrit(op, count);
+        QF_CRIT_EXIT(crit);
+    }
+
+    // Without critical section.
+    void CacheOpNoCrit(void (*op)(uint32_t addr, uint32_t len), uint32_t count) {
+        if ((m_readIndex + count) <= (m_mask + 1)) {
+            op(GetReadAddr(), count * sizeof(Type));
+        } else {
+            uint32_t partial = m_mask + 1 - m_readIndex;
+            op(GetReadAddr(), partial * sizeof(Type));
+            op(GetAddr(0), (count - partial) * sizeof(Type));
+        }
+    }
+
+    // To be used with caution.
+    // index must be in the used range.
+    void Delete(uint32_t index) {
+        QF_CRIT_STAT_TYPE crit;
+        QF_CRIT_ENTRY(crit);
+        DeleteNoCrit(index);
+        QF_CRIT_EXIT(crit);
+    }
+
+    // To be used with caution.
+    // Without critical section.
+    void DeleteNoCrit(uint32_t index) {
+        // Ensures index is valid.
+        uint32_t offset = GetDiff(index, m_readIndex);
+        uint32_t usedCount = GetUsedCountNoCrit();
+        FW_PIPE_ASSERT(offset < usedCount);
+        // If index is closer to the readIndex end, move entries from that end to the overwrite deleted entry.
+        // Otherwise, move entries from the writeIndex end to overwrite the deleted entry.
+        uint32_t nextIndex = index;
+        if (offset <= (usedCount >> 1)) {
+            // Note unsigned comparison must not be >= 0.
+            for (uint32_t i = offset; i > 0; i--) {
+                DecIndex(nextIndex, 1);
+                m_stor[index] = m_stor[nextIndex];
+                index = nextIndex;
+            }
+            IncIndex(m_readIndex, 1);
+        } else {
+            // Normally the ending condition should be "i < (usedCount - 1)", since the entry
+            // at writeIndex is regarded to be unused and does not need to be moved.
+            // However some application may use the entry at writeIndex as a scratch buffer and
+            // commit it only when it is finalized. To accommodate that use case, the loop below
+            // covers the entry at the writeIndex as well. It won't hurt when it is not used.
+            // This logic MUST NOT be changed, as it is depended on by fw_histbuf.h
+            for (uint32_t i = offset; i < usedCount; i++) {
+                IncIndex(nextIndex, 1);
+                m_stor[index] = m_stor[nextIndex];
+                index = nextIndex;
+            }
+            DecIndex(m_writeIndex, 1);
+        }
+    }
+
 protected:
     // Write contiguous block to m_stor. count can be 0.
+    // Without critical section.
     void WriteBlock(Type const *src, uint32_t count) {
         FW_PIPE_ASSERT(src && ((m_writeIndex + count) <= (m_mask + 1)));
         for (uint32_t i = 0; i < count; i++) {
@@ -191,6 +275,7 @@ protected:
         IncIndex(m_writeIndex, count);
     }
     // Read contiguous block from m_stor. count can be 0.
+    // Without critical section.
     void ReadBlock(Type *dest, uint32_t count) {
         FW_PIPE_ASSERT(dest && ((m_readIndex + count) <= (m_mask + 1)));
         for (uint32_t i = 0; i < count; i++) {
@@ -200,6 +285,9 @@ protected:
     }
     void IncIndex(uint32_t &index, uint32_t count) {
         index = (index + count) & m_mask;
+    }
+    void DecIndex(uint32_t &index, uint32_t count) {
+        index = (index - count) & m_mask;
     }
     bool IsEmpty() {
         return (m_readIndex == m_writeIndex);

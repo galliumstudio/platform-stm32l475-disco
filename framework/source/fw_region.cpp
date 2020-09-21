@@ -39,6 +39,7 @@
 #include "qpcpp.h"
 #include "fw_region.h"
 #include "fw_active.h"
+#include "fw_xthread.h"
 #include "fw_assert.h"
 
 FW_DEFINE_THIS_FILE("fw_region.cpp")
@@ -53,6 +54,23 @@ void Region::Init(Active *container) {
     container->Add(this);
     m_hsm.Init(container);
     QHsm::init();
+}
+
+void Region::Init(XThread *container) {
+    FW_ASSERT(container);
+    m_container = container;
+    container->Add(this);
+    m_hsm.Init(container);
+    QHsm::init();
+}
+
+void Region::dispatch(QEvt const * const e) {
+    // For region, e can be from the container active object's event queue (dynamic or static/timer),
+    // or be a static event on the stack of the container active object.
+    // Garbage collection, if needed, is done by the caller.
+    QHsm::dispatch(e);
+    // Handle all reminder events generated as a result of e.
+    m_hsm.DispatchReminder();
 }
 
 void Region::PostSync(Evt const *e) {

@@ -43,11 +43,15 @@
 #include "qpcpp.h"
 #include "stm32l4xx.h"
 #include "stm32l4xx_hal.h"
-#include "stm32l476g_discovery.h"
+#include "stm32l475e_iot01.h"
 #include "stm32l4xx_it.h"
 
 #define BSP_TICKS_PER_SEC            (1000)
 #define BSP_MSEC_PER_TICK            (1000 / BSP_TICKS_PER_SEC)
+#define BSP_MSEC_TO_TICK(ms_)        ((ms_) / BSP_MSEC_PER_TICK)
+
+// Timer tick rates
+#define TICK_RATE_BSP       0       // Timer tick driven by SysTick_Handler() at a rate of BSP_TICKS_PER_SEC.
 
 enum KernelUnawareISRs { // see NOTE00
     // ...
@@ -77,6 +81,9 @@ Q_ASSERT_COMPILE(MAX_KERNEL_AWARE_CMSIS_PRI <= (0xFF >>(8-__NVIC_PRIO_BITS)));
 
 void BspInit();
 void BspWrite(char const *buf, uint32_t len);
-uint32_t GetSystemMs();
+// Use C linkage as it is required by C-based emwin library.
+extern "C" uint32_t GetSystemMs();
+extern "C" void DelayMs(uint32_t ms);
+uint32_t GetIdleCnt();
 
 #endif // BSP_H

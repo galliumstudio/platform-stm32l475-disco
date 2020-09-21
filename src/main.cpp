@@ -78,15 +78,27 @@
 #include "bsp.h"
 #include "app_hsmn.h"
 #include "fw.h"
+#include "fw_macro.h"
 #include "fw_log.h"
 #include "fw_assert.h"
+#include "Console.h"
 #include "System.h"
-#include "Sample.h"
-#include "SampleInterface.h"
+#include "GpioInAct.h"
+#include "CompositeAct.h"
+#include "CompositeActInterface.h"
+#include "SimpleAct.h"
+#include "SimpleActInterface.h"
+#include "Demo.h"
+#include "GpioOutAct.h"
+#include "AOWashingMachine.h"
+#include "Traffic.h"
 #include "UartAct.h"
 #include "UartActInterface.h"
-#include "BtnGrp.h"
-#include "LedGrp.h"
+#include "SystemInterface.h"
+#include "GpioInInterface.h"
+#include "ConsoleInterface.h"
+#include "ConsoleCmd.h"
+#include "SystemCmd.h"
 
 FW_DEFINE_THIS_FILE("main.cpp")
 
@@ -105,10 +117,15 @@ using namespace APP;
 // Todo - Create a memory pool for DMA use, with cache disabled.
 //static System system  __attribute__ ((section (".dmatest")));
 static System sys;
-static Sample sample;
-static UartAct uart1Act(UART1_ACT, "UART1_ACT", "UART1_IN", "UART1_OUT");
-static BtnGrp btnGrp;
-static LedGrp ledGrp;
+static Console consoleUart1(CONSOLE_UART1, "CONSOLE_UART1", "CMD_INPUT_UART1", "CMD_PARSER_UART1");
+static CompositeAct compositeAct;
+static SimpleAct simpleAct;
+static Demo demo;
+static GpioOutAct gpioOutAct;
+static AOWashingMachine washingMachine;
+static Traffic traffic;
+static GpioInAct gpioInAct;
+static UartAct uartAct1(UART1_ACT, "UART1_ACT", "UART1_IN", "UART1_OUT");
 
 /* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
@@ -128,23 +145,35 @@ int main(void)
     // Initialize QP, framework and BSP (including HAL).
     Fw::Init();
     // Configure log settings.
-    Log::SetVerbosity(5);
-    //Log::SetVerbosity(0);
+    Log::SetVerbosity(4);
     Log::OnAll();
-    //Log::Off(SYSTEM);
-    //Log::Off(SAMPLE);
-    //Log::Off(SAMPLE_REG0);
-    //Log::Off(SAMPLE_REG1);
-    //Log::Off(SAMPLE_REG2);
-    //Log::Off(SAMPLE_REG3);
+    Log::Off(UART1_IN);
     Log::Off(UART1_OUT);
+    Log::Off(CMD_INPUT_UART1);
+    Log::Off(CMD_PARSER_UART1);
+    Log::Off(CONSOLE_UART1);
 
     // Start active objects.
-    sample.Start(PRIO_SAMPLE);
-    uart1Act.Start(PRIO_UART1_ACT);
-    btnGrp.Start(PRIO_BTN_GRP);
-    ledGrp.Start(PRIO_LED_GRP);
-    sys.Start(PRIO_SYSTEM);    
+    compositeAct.Start(PRIO_COMPOSITE_ACT);
+    simpleAct.Start(PRIO_SIMPLE_ACT);
+    demo.Start(PRIO_DEMO);
+    gpioOutAct.Start(PRIO_GPIO_OUT_ACT);
+    washingMachine.Start(PRIO_AO_WASHING_MACHINE);
+    traffic.Start(PRIO_TRAFFIC);
+    gpioInAct.Start(PRIO_GPIO_IN_ACT);
+    uartAct1.Start(PRIO_UART1_ACT);
+    consoleUart1.Start(PRIO_CONSOLE_UART1);
+    sys.Start(PRIO_SYSTEM);
+
+    // Kick off the topmost active objects.
+    Evt *evt;
+    evt = new ConsoleStartReq(CONSOLE_UART1, HSM_UNDEF, 0, ConsoleCmd, UART1_ACT, true); //true);
+    Fw::Post(evt);
+    // CONSOLE_UART1 must not be started since it is used by WIFI (started in System).
+    //evt = new ConsoleStartReq(CONSOLE_UART1, HSM_UNDEF, 0, ConsoleCmd, UART1_ACT, false);
+    //Fw::Post(evt);
+    evt = new SystemStartReq(SYSTEM, HSM_UNDEF, 0);
+    Fw::Post(evt);
     return QP::QF::run();
 }
 
@@ -186,8 +215,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLQ = 4;
   if(HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
-    /* Initialization Error */
-    while(1);
+    Error_Handler();
   }
   
   /* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2 
@@ -199,8 +227,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;  
   if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
   {
-    /* Initialization Error */
-    while(1);
+    Error_Handler();
   }
 }
 
@@ -211,12 +238,13 @@ void SystemClock_Config(void)
   */
 static void Error_Handler(void)
 {
-  /* Turn LED2 on */
-  BSP_LED_On(LED4);
+  /* Turn LED4 on */
+  BSP_LED_Init(LED2);
+  BSP_LED_On(LED2);
   while(1)
   {
-    /* Error if LED2 is slowly blinking (1 sec. period) */
-    BSP_LED_Toggle(LED4);
+    /* Error if LED4 is slowly blinking (1 sec. period) */
+    BSP_LED_Toggle(LED2);
     HAL_Delay(1000);
   }
 }

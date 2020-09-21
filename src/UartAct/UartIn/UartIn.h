@@ -44,6 +44,7 @@
 #include "fw_region.h"
 #include "fw_timer.h"
 #include "fw_evt.h"
+#include "fw_pipe.h"
 #include "app_hsmn.h"
 
 using namespace QP;
@@ -54,22 +55,52 @@ namespace APP {
 class UartIn : public Region {
 public:
     UartIn(Hsmn hsmn, char const *name, UART_HandleTypeDef &hal);
+    static void DmaCompleteCallback(Hsmn hsmn);
+    static void DmaHalfCompleteCallback(Hsmn hsmn);
+
+    typedef uint8_t HwError;
+    static const HwError HW_ERROR_NONE    = 0x00;   // No error.
+    static const HwError HW_ERROR_OVERRUN = 0x01;   // HW rx buffer overrun.
+    static const HwError HW_ERROR_NOISE   = 0x02;   // Noise detected on a received frame.
+    static const HwError HW_ERROR_FRAME   = 0x04;   // Frame error (e.g. caused by incorrect baud rate).
+
+    static void RxCallback(Hsmn hsmn, HwError error = HW_ERROR_NONE);
 
 protected:
     static QState InitialPseudoState(UartIn * const me, QEvt const * const e);
     static QState Root(UartIn * const me, QEvt const * const e);
         static QState Stopped(UartIn * const me, QEvt const * const e);
         static QState Started(UartIn * const me, QEvt const * const e);
+          static QState Failed(UartIn * const me, QEvt const * const e);
+          static QState Normal(UartIn * const me, QEvt const * const e);
+            static QState Inactive(UartIn * const me, QEvt const * const e);
+            static QState Active(UartIn * const me, QEvt const * const e);
+
+    void EnableRxInt();
+    void DisableRxInt();
+    static void CleanInvalidateCache(uint32_t addr, uint32_t len);
 
     UART_HandleTypeDef &m_hal;
-    Timer m_stateTimer;
+    Hsmn m_manager;
+    Hsmn m_client;
+    Fifo *m_fifo;
+    bool m_dataRecv;
+    Timer m_activeTimer;
+
+    enum{
+        ACTIVE_TIMER_MS = 10
+    };
 
     enum {
-        STATE_TIMER = TIMER_EVT_START(UART_IN),
+        ACTIVE_TIMER = TIMER_EVT_START(UART_IN),
     };
 
     enum {
         DONE = INTERNAL_EVT_START(UART_IN),
+        DATA_RDY,
+        DMA_RECV,
+        FIFO_OVERFLOW,      // Can't use OVERFLOW since it conflicts with math.h
+        HW_FAIL,
     };
 };
 

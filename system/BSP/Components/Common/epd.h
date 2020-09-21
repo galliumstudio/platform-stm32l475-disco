@@ -2,14 +2,14 @@
   ******************************************************************************
   * @file    epd.h
   * @author  MCD Application Team
-  * @version V4.0.1
-  * @date    21-July-2015
+  * @version V5.0.0
+  * @date    01-March-2017
   * @brief   This file contains all the functions prototypes for the 
   *          EPD (E Paper Display) driver.   
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2015 STMicroelectronics</center></h2>
+  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:

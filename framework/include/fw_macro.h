@@ -39,8 +39,15 @@
 #ifndef FW_MACRO_H
 #define FW_MACRO_H
 
+#include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+
+#define FW_CRIT_ENTRY() \
+    QF_CRIT_STAT_TYPE crit_; \
+    QF_CRIT_ENTRY(crit_)
+
+#define FW_CRIT_EXIT() QF_CRIT_EXIT(crit_)
 
 #define STRING_COPY(to_, from_, len_) \
     do { \
@@ -49,6 +56,9 @@
             (to_)[(len_) - 1] = '\0'; \
         } \
     } while(0)
+
+#define STRING_EQUAL(s1_, s2_) (strcmp((s1_), (s2_)) == 0)
+#define STRING_TO_NUM(s, base) (strtoul(s, NULL, base))
 
 #define CONST_STRING_LEN(a_)        (sizeof(a_) - 1)
 

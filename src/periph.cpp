@@ -56,6 +56,7 @@ TIM_HandleTypeDef Periph::m_tim2Hal;
 // USART1 - TX PB.6 DMA1 Channel 4 Request 2
 //          RX PB.7 DMA1 Channel 5 Request 2
 // LED0 - PB.14 PWM TIM1 Channel 2
+// BUTTON - PC.13
 //
 // TIM1 configuration:
 // APB1CLK = HCLK -> TIM1CLK = HCLK = SystemCoreClock (See "clock tree" and "timer clock" in ref manual.)
@@ -65,6 +66,7 @@ TIM_HandleTypeDef Periph::m_tim2Hal;
 
 void Periph::SetupNormal() {
     __GPIOB_CLK_ENABLE();
+    __GPIOC_CLK_ENABLE();
     __HAL_RCC_DMA1_CLK_ENABLE();
     __HAL_RCC_TIM1_CLK_ENABLE();
 
@@ -92,10 +94,9 @@ void Periph::Reset() {
     HAL_TIM_PWM_DeInit(&m_tim1Hal);
     __HAL_RCC_TIM1_CLK_DISABLE();
     __HAL_RCC_DMA1_CLK_DISABLE();
-    __GPIOD_CLK_DISABLE();
-    __GPIOE_CLK_DISABLE();
+    __GPIOC_CLK_DISABLE();
+    __GPIOB_CLK_DISABLE();
     // TBD.
 }
-
 
 } // namespace APP

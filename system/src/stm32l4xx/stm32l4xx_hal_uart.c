@@ -904,8 +904,10 @@ HAL_StatusTypeDef HAL_UART_Transmit_DMA(UART_HandleTypeDef *huart, uint8_t *pDat
     /* Set the UART DMA transfer complete callback */
     huart->hdmatx->XferCpltCallback = UART_DMATransmitCplt;
 
+    // Gallium
     /* Set the UART DMA Half transfer complete callback */
-    huart->hdmatx->XferHalfCpltCallback = UART_DMATxHalfCplt;
+    //huart->hdmatx->XferHalfCpltCallback = UART_DMATxHalfCplt;
+    huart->hdmatx->XferHalfCpltCallback = 0;
 
     /* Set the DMA error callback */
     huart->hdmatx->XferErrorCallback = UART_DMAError;
@@ -2409,8 +2411,13 @@ static void UART_DMATransmitCplt(DMA_HandleTypeDef *hdma)
        in the UART CR3 register */
     CLEAR_BIT(huart->Instance->CR3, USART_CR3_DMAT);
 
+    // Gallium
     /* Enable the UART Transmit Complete Interrupt */
-    SET_BIT(huart->Instance->CR1, USART_CR1_TCIE);
+    //SET_BIT(huart->Instance->CR1, USART_CR1_TCIE);
+    /* Tx process is ended, restore huart->gState to Ready */
+    huart->gState = HAL_UART_STATE_READY;
+    HAL_UART_TxCpltCallback(huart);
+
   }
   /* DMA Circular mode */
   else

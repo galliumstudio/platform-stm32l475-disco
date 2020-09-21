@@ -79,6 +79,12 @@ Hsmn UartAct::GetHsmn(UART_HandleTypeDef *hal) {
     return hsmn;
 }
 
+uint16_t UartAct::GetInst(Hsmn hsmn) {
+    uint16_t inst = hsmn - UART_ACT;
+    FW_ASSERT(inst < UART_ACT_COUNT);
+    return inst;
+}
+
 static char const * const timerEvtName[] = {
     "STATE_TIMER",
 };
@@ -97,15 +103,19 @@ static char const * const interfaceEvtName[] = {
     "UART_ACT_FAIL_IND",
 };
 
-static uint16_t GetInst(Hsmn hsmn) {
-    uint16_t inst = hsmn - UART_ACT;
-    FW_ASSERT(inst < UART_ACT_COUNT);
-    return inst;
-}
-
 extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *hal) {
     Hsmn hsmn = UartAct::GetHsmn(hal);
-    UartOut::DmaCompleteCallback(UART_OUT + GetInst(hsmn));
+    UartOut::DmaCompleteCallback(UART_OUT + UartAct::GetInst(hsmn));
+}
+
+extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *hal) {
+    Hsmn hsmn = UartAct::GetHsmn(hal);
+    UartIn::DmaCompleteCallback(UART_IN + UartAct::GetInst(hsmn));
+}
+
+extern "C" void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *hal) {
+    Hsmn hsmn = UartAct::GetHsmn(hal);
+    UartIn::DmaHalfCompleteCallback(UART_IN + UartAct::GetInst(hsmn));
 }
 
 // Define UART configurations.
@@ -119,8 +129,8 @@ UartAct::Config const UartAct::CONFIG[] = {
 // Corresponds to what was done in _msp.cpp file.
 void UartAct::InitUart() {
     switch((uint32_t)(m_config->uart)) {
-        case USART1_BASE: __HAL_RCC_USART1_CLK_ENABLE(); break;
         case USART2_BASE: __HAL_RCC_USART2_CLK_ENABLE(); break;
+        case USART1_BASE: __HAL_RCC_USART1_CLK_ENABLE(); break;
         // Add more cases here...
         default: FW_ASSERT(0); break;
     }
@@ -172,9 +182,8 @@ void UartAct::InitUart() {
     NVIC_SetPriority(m_config->txDmaIrq, m_config->txDmaPrio);
     NVIC_EnableIRQ(m_config->txDmaIrq);
     // NVIC for DMA RX
-    // Gallium - disabled for testing.
-    //NVIC_SetPriority(m_config->rxDmaIrq, m_config->rxDmaPrio);
-    //NVIC_EnableIRQ(m_config->rxDmaIrq);
+    NVIC_SetPriority(m_config->rxDmaIrq, m_config->rxDmaPrio);
+    NVIC_EnableIRQ(m_config->rxDmaIrq);
     // NVIC for USART
     NVIC_SetPriority(m_config->uartIrq, m_config->uartPrio);
     NVIC_EnableIRQ(m_config->uartIrq);
@@ -183,6 +192,7 @@ void UartAct::InitUart() {
 void UartAct::DeInitUart() {
     switch((uint32_t)(m_hal.Instance)) {
         case USART2_BASE: __HAL_RCC_USART2_FORCE_RESET(); __HAL_RCC_USART2_RELEASE_RESET(); __HAL_RCC_USART2_CLK_DISABLE(); break;
+        case USART1_BASE: __HAL_RCC_USART1_FORCE_RESET(); __HAL_RCC_USART1_RELEASE_RESET(); __HAL_RCC_USART1_CLK_DISABLE(); break;
         // Add more cases here...
         default: FW_ASSERT(0); break;
     }
@@ -193,17 +203,15 @@ void UartAct::DeInitUart() {
 }
 
 UartAct::UartAct(Hsmn hsmn, char const *name, char const *inName, char const *outName) :
-    Active((QStateHandler)&UartAct::InitialPseudoState, hsmn, name,
-           timerEvtName, ARRAY_COUNT(timerEvtName),
-           internalEvtName, ARRAY_COUNT(internalEvtName),
-           interfaceEvtName, ARRAY_COUNT(interfaceEvtName)),
+    Active((QStateHandler)&UartAct::InitialPseudoState, hsmn, name),
     m_config(NULL),
-    m_uartInHsmn(UART_IN + GetInst(hsmn)),
-    m_uartOutHsmn(UART_OUT + GetInst(hsmn)),
+    m_uartInHsmn(GetUartInHsmn(hsmn)),
+    m_uartOutHsmn(GetUartOutHsmn(hsmn)),
     m_uartIn(m_uartInHsmn, inName, m_hal),
     m_uartOut(m_uartOutHsmn, outName, m_hal),
     m_client(HSM_UNDEF), m_outFifo(NULL), m_inFifo(NULL),
     m_stateTimer(hsmn, STATE_TIMER) {
+    SET_EVT_NAME(UART_ACT);
     FW_ASSERT((hsmn >= UART_ACT) && (hsmn <= UART_ACT_LAST));
     memset(&m_hal, 0, sizeof(m_hal));
     memset(&m_txDmaHandle, 0, sizeof(m_txDmaHandle));
@@ -344,7 +352,7 @@ QState UartAct::Starting(UartAct * const me, QEvt const * const e) {
             Evt *evt = new UartOutStartReq(me->m_uartOutHsmn, GET_HSMN(), GEN_SEQ(), me->m_outFifo, me->m_client);
             me->GetHsm().SaveOutSeq(*evt);
             Fw::Post(evt);
-            evt = new UartInStartReq(me->m_uartInHsmn, GET_HSMN(), GEN_SEQ(), me->m_inFifo);
+            evt = new UartInStartReq(me->m_uartInHsmn, GET_HSMN(), GEN_SEQ(), me->m_inFifo, me->m_client);
             me->GetHsm().SaveOutSeq(*evt);
             Fw::Post(evt);
             status = Q_HANDLED();
@@ -360,7 +368,15 @@ QState UartAct::Starting(UartAct * const me, QEvt const * const e) {
         case UART_OUT_START_CFM:
         case UART_IN_START_CFM: {
             EVENT(e);
-            me->HandleCfmRsp(ERROR_EVT_CAST(*e));
+            ErrorEvt const &cfm = ERROR_EVT_CAST(*e);
+            bool allReceived;
+            if (!me->GetHsm().HandleCfmRsp(cfm, allReceived)) {
+                Evt *evt = new Fail(me->GetHsm().GetHsmn(), cfm.GetError(), cfm.GetOrigin(), cfm.GetReason());
+                me->PostSync(evt);
+            } else if (allReceived) {
+                Evt *evt = new Evt(DONE, me->GetHsm().GetHsmn());
+                me->PostSync(evt);
+            }
             status = Q_HANDLED();
             break;
         }
@@ -371,8 +387,7 @@ QState UartAct::Starting(UartAct * const me, QEvt const * const e) {
             if (e->sig == FAIL) {
                 ErrorEvt const &fail = ERROR_EVT_CAST(*e);
                 evt = new UartActStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(),
-                                         fail.GetError(), fail.GetOrigin(), fail.GetReason());
-
+                                          fail.GetError(), fail.GetOrigin(), fail.GetReason());
             } else {
                 evt = new UartActStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_TIMEOUT, GET_HSMN());
             }
@@ -432,7 +447,15 @@ QState UartAct::Stopping(UartAct * const me, QEvt const * const e) {
         case UART_IN_STOP_CFM:
         case UART_OUT_STOP_CFM: {
             EVENT(e);
-            me->HandleCfmRsp(ERROR_EVT_CAST(*e));
+            ErrorEvt const &cfm = ERROR_EVT_CAST(*e);
+            bool allReceived;
+            if (!me->GetHsm().HandleCfmRsp(cfm, allReceived)) {
+                Evt *evt = new Fail(me->GetHsm().GetHsmn(), cfm.GetError(), cfm.GetOrigin(), cfm.GetReason());
+                me->PostSync(evt);
+            } else if (allReceived) {
+                Evt *evt = new Evt(DONE, me->GetHsm().GetHsmn());
+                me->PostSync(evt);
+            }
             status = Q_HANDLED();
             break;
         }
@@ -448,6 +471,8 @@ QState UartAct::Stopping(UartAct * const me, QEvt const * const e) {
             EVENT(e);
             Evt *evt = new UartActStopCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_SUCCESS);
             Fw::Post(evt);
+            HAL_UART_DeInit(&me->m_hal);
+            me->DeInitUart();
             status = Q_TRAN(&UartAct::Stopped);
             break;
         }
@@ -535,21 +560,6 @@ QState UartAct::Failed(UartAct * const me, QEvt const * const e) {
         }
     }
     return status;
-}
-
-void UartAct::HandleCfmRsp(ErrorEvt const &e) {
-    Hsmn hsmn = GetHsm().GetHsmn();
-    if (GetHsm().MatchOutSeq(e)) {
-        if (e.GetError() == ERROR_SUCCESS) {
-            if(GetHsm().IsOutSeqAllCleared()) {
-                Evt *evt = new Evt(DONE, hsmn);
-                PostSync(evt);
-            }
-        } else {
-            Evt *evt = new Fail(hsmn, e.GetError(), e.GetOrigin(), e.GetReason());
-            PostSync(evt);
-        }
-    }
 }
 
 /*

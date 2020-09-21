@@ -37,25 +37,36 @@
  ******************************************************************************/
 
 #include <string.h>
+#include <stdio.h>
 #include "qpcpp.h"
 #include "bsp.h"
 
 Q_DEFINE_THIS_FILE
 
-#define ENABLE_BSP_PRINT
+// Define this to enable debug print before UartAct objects are initialized.
+// Debug messages are printed using HAL directly without DMA. This slows down the
+// boot up process but allows all debug message to be seen since boot up.
+//#define ENABLE_BSP_PRINT
+
+static volatile uint32_t idleCnt = 0;
 
 static UART_HandleTypeDef usart;
 
 /* top of stack (highest address) defined in the linker script -------------*/
 extern int _estack;
 
-void BspInit() {
-    // STM32F7xx HAL library initialization
-    HAL_Init();
-
-#ifdef ENABLE_BSP_PRINT
-    // USART3 (TX=PD8, RX=PD9) is used as the virtual COM port in ST-Link.
-    usart.Instance = USART2;
+static void InitUart() {
+    // USART1 (TX=PB6, RX=PB7) is used as the virtual COM port in ST-Link.
+    __HAL_RCC_USART1_CLK_ENABLE();          // Customize.
+    __GPIOB_CLK_ENABLE();                   // Customize.
+    GPIO_InitTypeDef  gpioInit;
+    gpioInit.Pin       = GPIO_PIN_6;        // Customize.
+    gpioInit.Mode      = GPIO_MODE_AF_PP;   // Customize.
+    gpioInit.Alternate = GPIO_AF7_USART1;   // Customize.
+    gpioInit.Pull      = GPIO_PULLUP;
+    gpioInit.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
+    HAL_GPIO_Init(GPIOB, &gpioInit);
+    usart.Instance = USART1;                // Customize.
     usart.Init.BaudRate = 115200;
     usart.Init.WordLength = UART_WORDLENGTH_8B;
     usart.Init.StopBits = UART_STOPBITS_1;
@@ -63,22 +74,55 @@ void BspInit() {
     usart.Init.HwFlowCtl  = UART_HWCONTROL_NONE;
     usart.Init.Mode = UART_MODE_TX_RX;
     HAL_UART_Init(&usart);
-    char const *test = "BspInit success\n\r";
-    BspWrite(test, strlen(test));
+}
+
+static void WriteUart(char const *buf, uint32_t len) {
+    HAL_UART_Transmit(&usart, (uint8_t *)buf, len, 0xFFFF);
+}
+
+void BspInit() {
+    // STM32 HAL library initialization
+    HAL_Init();
+#ifdef ENABLE_BSP_PRINT
+    InitUart();
 #endif // ENABLE_BSP_PRINT
 
-    // Gallium Test only. For GPIO debugging.
-    BSP_LED_Init(LED4);
+    char const *testStr = "BspInit success\n\r";
+    BspWrite(testStr, strlen(testStr));
 }
 
 void BspWrite(char const *buf, uint32_t len) {
 #ifdef ENABLE_BSP_PRINT
-     HAL_UART_Transmit(&usart, (uint8_t *)buf, len, 0xFFFF);
+     WriteUart(buf, len);
 #endif
+}
+
+// Trace functions used by exception_handlers.c
+// BspInitTrace() must be called before BspTrace() is called.
+// Must be declared as C functions.
+extern "C" void BspInitTrace() {
+    InitUart();
+}
+extern "C" void BspTrace(char const *buf, uint32_t len) {
+    WriteUart(buf, len);
+    WriteUart("\r", 1);
 }
 
 uint32_t GetSystemMs() {
     return HAL_GetTick() * BSP_MSEC_PER_TICK;
+}
+
+// Delay for short periods only. It should be used for testing or assert handling only.
+void DelayMs(uint32_t ms) {
+    // Note wrap around is okay.
+    uint32_t endMs = GetSystemMs() + ms;
+    while ((int32_t)(endMs - GetSystemMs()) > 0);
+}
+
+uint32_t GetIdleCnt() {
+    uint32_t cnt = idleCnt;
+    idleCnt = 0;
+    return cnt;
 }
 
 // Override the one defined in stm32f7xx_hal.c.
@@ -121,8 +165,8 @@ void QXK::onIdle(void) {
     QF_INT_DISABLE();
     //GPIOA->BSRR |= (LED_LD2);        // turn LED[n] on
     //GPIOA->BSRR |= (LED_LD2 << 16);  // turn LED[n] off
+    idleCnt++;
     QF_INT_ENABLE();
-
 
 #if defined NDEBUG
     // Put the CPU and peripherals to the low-power mode.
@@ -148,10 +192,15 @@ extern "C" void Q_onAssert(char const * const module, int loc) {
     //
     // NOTE: add here your application-specific error handling
     //
-    (void)module;
-    (void)loc;
-
-    // Gallium - TBD
+    // Gallium
+    // Short delay for pending debug messages to be flushed.
+    DelayMs(200);
+    // Reinitializes uart and output assert message in direct mode (not INT or DMA).
+    InitUart();
+    char buf[100];
+    snprintf(buf, sizeof(buf), "ASSERT FAILED in %s at line %d\n\r", module, loc);
+    WriteUart(buf, strlen(buf));
+    QF_INT_DISABLE();
     for (;;) {
     }
     //NVIC_SystemReset();

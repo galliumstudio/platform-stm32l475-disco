@@ -39,6 +39,7 @@
 #include "qpcpp.h"
 #include "fw_defer.h"
 #include "fw_active.h"
+#include "fw_inline.h"
 #include "fw_assert.h"
 
 FW_DEFINE_THIS_FILE("fw_defer.cpp")
@@ -47,7 +48,7 @@ using namespace QP;
 
 namespace FW {
 
-void DeferEQueue::Init(Active *container, QEvt const *qSto[], uint16_t qLen) {
+void DeferEQueue::Init(QActive *container, QEvt const *qSto[], uint16_t qLen) {
     FW_ASSERT(container && qSto && qLen);
     m_container = container;
     QEQueue::init(qSto, qLen);
@@ -58,6 +59,8 @@ bool DeferEQueue::Defer(QEvt const *e) {
     if (QEQueue::getNFree() ==  0) {
         return false;
     }
+    // A deferred event must be dynamic (i.e. it cannot be on the stack).
+    FW_ASSERT(QF_EVT_POOL_ID_(e) != 0);
     // Use LIFO to act like stack to preserve order of multiple deferred events.
     QEQueue::postLIFO(e);
     return true;

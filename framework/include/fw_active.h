@@ -42,49 +42,37 @@
 #include <stdint.h>
 #include "qpcpp.h"
 #include "fw_hsm.h"
+#include "fw_maptype.h"
 #include "fw_evt.h"
 
 namespace FW {
 
-typedef KeyValue<Hsmn, Region *> HsmnReg;
-typedef Map<Hsmn, Region *> HsmnRegMap;
-
-class Region;
-class Timer;
-
 class Active : public QP::QActive {
 public:
-    Active(QP::QStateHandler const initial, Hsmn hsmn, char const *name,
-            EvtName timerEvtName, EvtCount timerEvtCount,
-            EvtName internalEvtName, EvtCount internalEvtCount,
-            EvtName interfaceEvtName, EvtCount interfaceEvtCount) :
+    Active(QP::QStateHandler const initial, Hsmn hsmn, char const *name) :
         QP::QActive(initial),
-        m_hsm(hsmn, name, this, NULL,
-              timerEvtName, timerEvtCount,
-              internalEvtName, internalEvtCount,
-              interfaceEvtName, interfaceEvtCount),
+        m_hsm(hsmn, name, this),
         m_hsmnRegMap(m_hsmnRegStor, ARRAY_COUNT(m_hsmnRegStor), HsmnReg(HSM_UNDEF, NULL)){
     }
     void Start(uint8_t prio);
     void Add(Region *reg);
     Hsm &GetHsm() { return m_hsm; }
+    Hsmn GetHsmn() const { return m_hsm.GetHsmn(); }
+    Sequence GenSeq() { return m_hsm.GenSeq(); }
 
     virtual void dispatch(QP::QEvt const * const e);
 
 protected:
     void PostSync(Evt const *e);
-    QP::QEvt const **GetEvtQueueStor(uint16_t *count);
 
     enum {
         MAX_REGION_COUNT = 8,
-        EVT_QUEUE_COUNT = 16
+        EVT_QUEUE_COUNT = 64 //16
     };
     Hsm m_hsm;
     HsmnReg m_hsmnRegStor[MAX_REGION_COUNT];
     HsmnRegMap m_hsmnRegMap;
     QP::QEvt const *m_evtQueueStor[EVT_QUEUE_COUNT];
-
-    friend class Timer;
 };
 
 } // namespace FW

@@ -40,45 +40,59 @@
 #include "fw_assert.h"
 #include "app_hsmn.h"
 #include "periph.h"
-#include "UartActInterface.h"
-#include "UartOutInterface.h"
 #include "System.h"
 #include "SystemInterface.h"
-#include "SampleInterface.h"
-#include "BtnInterface.h"
-#include "LedInterface.h"
+#include "GpioInInterface.h"
+#include "CompositeActInterface.h"
+#include "SimpleActInterface.h"
+#include "DemoInterface.h"
+#include "GpioOutInterface.h"
+#include "AOWashingMachineInterface.h"
+#include "TrafficInterface.h"
 #include "bsp.h"
+#include <vector>
+#include <memory>
+
+// Compile options to enable demo application.
+// Only one of the following can be enabled at a time.
+#define ENABLE_TRAFFIC
+//#define ENABLE_LEVEL_METER
+
+#if (defined(ENABLE_TRAFFIC) && defined(ENABLE_LEVEL_METER))
+#error ENABLE_TRAFFIC and ENABLE_LEVEL_METER cannot be both defined
+#endif
 
 FW_DEFINE_THIS_FILE("System.cpp")
 
+using namespace FW;
+
 namespace APP {
 
+#undef ADD_EVT
+#define ADD_EVT(e_) #e_,
+
 static char const * const timerEvtName[] = {
-    "STATE_TIMER",
-    "TEST_TIMER",
+    "SYSTEM_TIMER_EVT_START",
+    SYSTEM_TIMER_EVT
 };
 
 static char const * const internalEvtName[] = {
-    "DONE",
-    "RESTART",
+    "SYSTEM_INTERNAL_EVT_START",
+    SYSTEM_INTERNAL_EVT
 };
 
 static char const * const interfaceEvtName[] = {
-    "SYSTEM_START_REQ",
-    "SYSTEM_START_CFM",
-    "SYSTEM_STOP_REQ",
-    "SYSTEM_STOP_CFM",
+    "SYSTEM_INTERFACE_EVT_START",
+    SYSTEM_INTERFACE_EVT
 };
 
 System::System() :
-    Active((QStateHandler)&System::InitialPseudoState, SYSTEM, "SYSTEM",
-           timerEvtName, ARRAY_COUNT(timerEvtName),
-           internalEvtName, ARRAY_COUNT(internalEvtName),
-           interfaceEvtName, ARRAY_COUNT(interfaceEvtName)),
-    m_uart1OutFifo(m_uart1OutFifoStor, UART_OUT_FIFO_ORDER),
-    m_uart1InFifo(m_uart1InFifoStor, UART_IN_FIFO_ORDER),
-    m_stateTimer(this->GetHsm().GetHsmn(), STATE_TIMER),
-    m_testTimer(this->GetHsm().GetHsmn(), TEST_TIMER) {}
+    Active((QStateHandler)&System::InitialPseudoState, SYSTEM, "SYSTEM"), m_maxIdleCnt(0), m_cpuUtilPercent(0),
+    m_stateTimer(GetHsm().GetHsmn(), STATE_TIMER), m_idleCntTimer(GetHsm().GetHsmn(), IDLE_CNT_TIMER),
+    m_sensorDelayTimer(GetHsm().GetHsmn(), SENSOR_DELAY_TIMER),
+    m_testTimer(GetHsm().GetHsmn(), TEST_TIMER) {
+    SET_EVT_NAME(SYSTEM);
+}
 
 QState System::InitialPseudoState(System * const me, QEvt const * const e) {
     (void)e;
@@ -86,130 +100,428 @@ QState System::InitialPseudoState(System * const me, QEvt const * const e) {
 }
 
 QState System::Root(System * const me, QEvt const * const e) {
-    QState status;
     switch (e->sig) {
-    case Q_ENTRY_SIG: {
-        EVENT(e);
-        // Test only
-        Periph::SetupNormal();
-        Evt *evt;
-        evt = new UartActStartReq(UART1_ACT, GET_HSMN(), GEN_SEQ(), &me->m_uart1OutFifo, &me->m_uart1InFifo);
-        me->GetHsm().SaveOutSeq(*evt);
-        Fw::Post(evt);
-
-        //me->m_testTimer.Start(500, Timer::PERIODIC);
-        //evt = new SampleStartReq(SAMPLE, SYSTEM, 0);
-        //Fw::Post(evt);
-        status = Q_HANDLED();
-        break;
-    }
-    case Q_EXIT_SIG: {
-        EVENT(e);
-        // Test only.
-        me->m_testTimer.Stop();
-        status = Q_HANDLED();
-        break;
-    }
-    case TEST_TIMER: {
-        //EVENT(e);
-        static uint32_t speed = 0;
-        static bool up = true;
-        static uint32_t stableCounter = 0;
-        if (stableCounter) {
-            stableCounter--;
-
-        } else {
-            if (up) {
-                speed += 2;
-                if (speed >= 1000) {
-                    up = false;
-                    stableCounter = 20; // 1s
-                }
-            } else {
-                speed -= 2;
-                if (speed <= 0) {
-                    up = true;
-                    stableCounter = 20; // 1s
-                }
-            }
+        case Q_ENTRY_SIG: {
+            EVENT(e);
+            Periph::SetupNormal();
+            return Q_HANDLED();
         }
-        Evt *evt = new LedLevelReq(LED0, GET_HSMN(), GEN_SEQ(), speed);
-        Fw::Post(evt);
-
-        // Test only.
-        static int testcount = 10000;
-        char msg[100];
-        snprintf(msg, sizeof(msg), "This is a UART DMA transmission testing number %d (level = %d).", testcount++, speed);
-        LOG("Writing %s", msg);
-        /*
-        bool status = false;
-        me->m_uartOutFifo.WriteNoCrit((uint8_t *)msg, strlen(msg), &status);
-        Evt *evt = new Evt(UART_OUT_WRITE_REQ, UART2_OUT, GET_HSMN());
-        Fw::Post(evt);
-        */
-
-        status = Q_HANDLED();
-        break;
-    }
-    case UART_ACT_START_CFM: {
-        EVENT(e);
-        ErrorEvt const &cfm = ERROR_EVT_CAST(*e);
-        if (me->GetHsm().MatchOutSeq(cfm)) {
-            if (cfm.GetError() == ERROR_SUCCESS) {
-                if(me->GetHsm().IsOutSeqAllCleared()) {
-                    LOG("UARTs started successfully");
-                    Log::AddInterface(UART1_OUT, &me->m_uart1OutFifo, UART_OUT_WRITE_REQ);
-
-                    //me->m_testTimer.Start(2000, Timer::PERIODIC);
-
-                    Evt *evt = new SampleStartReq(SAMPLE, SYSTEM, 0);
-                    Fw::Post(evt);
-                    evt = new BtnStartReq(SEL_BTN, GET_HSMN(), GEN_SEQ());
-                    Fw::Post(evt);
-                    evt = new LedStartReq(LED0, GET_HSMN(), GEN_SEQ());
-                    Fw::Post(evt);
-                }
-            }
+        case Q_EXIT_SIG: {
+            EVENT(e);
+            return Q_HANDLED();
         }
-        status = Q_HANDLED();
-        break;
-    }
-    case BTN_UP_IND: {
-        EVENT(e);
-        // Commented for testing.
-        //Evt *evt = new LedOffReq(LED0, GET_HSMN(), GEN_SEQ());
-        //Fw::Post(evt);
-        status = Q_HANDLED();
-        break;  
-    }
-    case BTN_DOWN_IND: {
-        EVENT(e);
-        // For motor control test.
-        static bool once = false;
-        if (!once) {
-            once = true;
-            me->m_testTimer.Start(50, Timer::PERIODIC);
-            Evt *evt = new LedLevelReq(LED0, GET_HSMN(), GEN_SEQ(), 0);
+        case Q_INIT_SIG: {
+            return Q_TRAN(&System::Stopped);
+        }
+        case SYSTEM_START_REQ: {
+            EVENT(e);
+            Evt const &req = EVT_CAST(*e);
+            Evt *evt = new SystemStartCfm(req.GetFrom(), GET_HSMN(), req.GetSeq(), ERROR_STATE, GET_HSMN());
             Fw::Post(evt);
-            evt = new LedOnReq(LED0, GET_HSMN(), GEN_SEQ());
-            Fw::Post(evt);
+            return Q_HANDLED();
         }
-        status = Q_HANDLED();
-        break;  
+        case SYSTEM_STOP_REQ: {
+            EVENT(e);
+            Evt const &req = EVT_CAST(*e);
+            me->GetHsm().SaveInSeq(req);
+            return Q_TRAN(&System::Stopping);
+        }
     }
-    case LED_ON_CFM:
-    case LED_OFF_CFM: {
-        EVENT(e);
-        status = Q_HANDLED();
-        break;    
-    }
-    default: {
-        status = Q_SUPER(&QHsm::top);
-        break;
-    }
-    }
-    return status;
+    return Q_SUPER(&QHsm::top);
 }
 
+QState System::Stopped(System * const me, QEvt const * const e) {
+    switch (e->sig) {
+        case Q_ENTRY_SIG: {
+            EVENT(e);
+            return Q_HANDLED();
+        }
+        case Q_EXIT_SIG: {
+            EVENT(e);
+            return Q_HANDLED();
+        }
+        case SYSTEM_STOP_REQ: {
+            EVENT(e);
+            Evt const &req = EVT_CAST(*e);
+            Evt *evt = new SystemStopCfm(req.GetFrom(), GET_HSMN(), req.GetSeq(), ERROR_SUCCESS);
+            Fw::Post(evt);
+            return Q_HANDLED();
+        }
+        case SYSTEM_START_REQ: {
+            EVENT(e);
+            Evt const &req = EVT_CAST(*e);
+            me->GetHsm().SaveInSeq(req);
+            return Q_TRAN(&System::Starting);
+        }
+    }
+    return Q_SUPER(&System::Root);
+}
+
+QState System::Starting(System * const me, QEvt const * const e) {
+    switch (e->sig) {
+        case Q_ENTRY_SIG: {
+            EVENT(e);
+            uint32_t timeout = SystemStartReq::TIMEOUT_MS;
+            // @todo Add assert to check timeout is larger than any of the max timeout of the controlled HSMs.
+            me->m_stateTimer.Start(timeout);
+            return Q_HANDLED();
+        }
+        case Q_EXIT_SIG: {
+            EVENT(e);
+            me->m_stateTimer.Stop();
+            me->GetHsm().ClearInSeq();
+            return Q_HANDLED();
+        }
+        case Q_INIT_SIG: {
+            return Q_TRAN(&System::Prestarting);
+        }
+        case FAILED:
+        case STATE_TIMER: {
+            EVENT(e);
+            Evt *evt;
+            if (e->sig == FAILED) {
+                ErrorEvt const &failed = ERROR_EVT_CAST(*e);
+                evt = new SystemStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(),
+                                            failed.GetError(), failed.GetOrigin(), failed.GetReason());
+            } else {
+                evt = new SystemStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_TIMEOUT, GET_HSMN());
+            }
+            Fw::Post(evt);
+            return Q_TRAN(&System::Stopping);
+        }
+        case DONE: {
+            EVENT(e);
+            Evt *evt = new SystemStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_SUCCESS);
+            Fw::Post(evt);
+            return Q_TRAN(&System::Started);
+        }
+    }
+    return Q_SUPER(&System::Root);
+}
+
+QState System::Prestarting(System * const me, QEvt const * const e) {
+    switch (e->sig) {
+        case Q_ENTRY_SIG: {
+            EVENT(e);
+            // Reset idle count in bsp.cpp
+            GetIdleCnt();
+            me->m_idleCntTimer.Start(IDLE_CNT_INIT_TIMEOUT_MS);
+            return Q_HANDLED();
+        }
+        case Q_EXIT_SIG: {
+            EVENT(e);
+            me->m_idleCntTimer.Stop();
+            return Q_HANDLED();
+        }
+        case IDLE_CNT_TIMER: {
+            EVENT(e);
+            me->m_maxIdleCnt = GetIdleCnt() * (IDLE_CNT_POLL_TIMEOUT_MS / IDLE_CNT_INIT_TIMEOUT_MS);
+            LOG("maxIdleCnt = %d", me->m_maxIdleCnt);
+            return Q_TRAN(&System::Starting1);
+        }
+    }
+    return Q_SUPER(&System::Starting);
+}
+
+
+QState System::Starting1(System * const me, QEvt const * const e) {
+    switch (e->sig) {
+        case Q_ENTRY_SIG: {
+            EVENT(e);
+            me->GetHsm().ResetOutSeq();
+            Evt *evt = new CompositeActStartReq(COMPOSITE_ACT, SYSTEM, GEN_SEQ());
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
+
+            evt = new SimpleActStartReq(SIMPLE_ACT, SYSTEM, GEN_SEQ());
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
+
+            evt = new DemoStartReq(DEMO, SYSTEM, GEN_SEQ());
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
+
+            evt = new WashStartReq(AO_WASHING_MACHINE, SYSTEM, GEN_SEQ());
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
+
+#ifdef ENABLE_TRAFFIC
+            evt = new TrafficStartReq(TRAFFIC, SYSTEM, GEN_SEQ());
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
+#endif
+
+            evt = new GpioInStartReq(USER_BTN, SYSTEM, GEN_SEQ());
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
+
+            evt = new GpioOutStartReq(USER_LED, SYSTEM, GEN_SEQ());
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
+
+            return Q_HANDLED();
+        }
+        case Q_EXIT_SIG: {
+            EVENT(e);
+            return Q_HANDLED();
+        }
+        case COMPOSITE_ACT_START_CFM:
+        case SIMPLE_ACT_START_CFM:
+        case DEMO_START_CFM:
+        case WASH_START_CFM:
+        case TRAFFIC_START_CFM:
+        case GPIO_IN_START_CFM:
+        case GPIO_OUT_START_CFM: {
+            EVENT(e);
+            ErrorEvt const &cfm = ERROR_EVT_CAST(*e);
+            bool allReceived;
+            if (!me->GetHsm().HandleCfmRsp(cfm, allReceived)) {
+                Evt *evt = new Failed(GET_HSMN(), cfm.GetError(), cfm.GetOrigin(), cfm.GetReason());
+                me->PostSync(evt);
+            } else if (allReceived) {
+                Evt *evt = new Evt(NEXT, GET_HSMN());
+                me->PostSync(evt);
+            }
+            return Q_HANDLED();
+        }
+        case NEXT: {
+            EVENT(e);
+            return Q_TRAN(&System::Starting2);
+        }
+    }
+    return Q_SUPER(&System::Starting);
+}
+
+QState System::Starting2(System * const me, QEvt const * const e) {
+    switch (e->sig) {
+        case Q_ENTRY_SIG: {
+            EVENT(e);
+            // @todo Placeholder.
+            Evt *evt = new Evt(NEXT, GET_HSMN());
+            me->PostSync(evt);
+            return Q_HANDLED();
+        }
+        case Q_EXIT_SIG: {
+            EVENT(e);
+            return Q_HANDLED();
+        }
+        case NEXT: {
+            EVENT(e);
+            return Q_TRAN(&System::Starting3);
+        }
+    }
+    return Q_SUPER(&System::Starting);
+}
+
+QState System::Starting3(System * const me, QEvt const * const e) {
+    switch (e->sig) {
+        case Q_ENTRY_SIG: {
+            EVENT(e);
+            // @todo Placeholder.
+            Evt *evt = new Evt(DONE, GET_HSMN());
+            me->PostSync(evt);
+            return Q_HANDLED();
+        }
+        case Q_EXIT_SIG: {
+            EVENT(e);
+            return Q_HANDLED();
+        }
+    }
+    return Q_SUPER(&System::Starting);
+}
+
+QState System::Stopping(System * const me, QEvt const * const e) {
+    switch (e->sig) {
+        case Q_ENTRY_SIG: {
+            EVENT(e);
+            uint32_t timeout = SystemStopReq::TIMEOUT_MS;
+            // @todo Add assert to check timeout is larger than any of the max timeout of the controlled HSMs.
+            me->m_stateTimer.Start(timeout);
+            return Q_HANDLED();
+        }
+        case Q_EXIT_SIG: {
+            EVENT(e);
+            me->m_stateTimer.Stop();
+            me->GetHsm().ClearInSeq();
+            me->GetHsm().Recall();
+            return Q_HANDLED();
+        }
+        case Q_INIT_SIG: {
+            return Q_TRAN(&System::Stopping1);
+        }
+        case SYSTEM_STOP_REQ: {
+            EVENT(e);
+            me->GetHsm().Defer(e);
+            return Q_HANDLED();
+        }
+        case FAILED:
+        case STATE_TIMER: {
+            EVENT(e);
+            FW_ASSERT(0);
+            // Will not reach here.
+            return Q_HANDLED();
+        }
+        case DONE: {
+            EVENT(e);
+            Evt *evt = new SystemStopCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_SUCCESS);
+            Fw::Post(evt);
+            return Q_TRAN(&System::Stopped);
+        }
+    }
+    return Q_SUPER(&System::Root);
+}
+
+QState System::Stopping1(System * const me, QEvt const * const e) {
+    switch (e->sig) {
+        case Q_ENTRY_SIG: {
+            EVENT(e);
+            me->GetHsm().ResetOutSeq();
+            Evt *evt = new Evt(NEXT, GET_HSMN());
+            me->PostSync(evt);
+            return Q_HANDLED();
+        }
+        case Q_EXIT_SIG: {
+            EVENT(e);
+            return Q_HANDLED();
+        }
+        case NEXT: {
+            EVENT(e);
+            return Q_TRAN(&System::Stopping2);
+        }
+    }
+    return Q_SUPER(&System::Stopping);
+}
+
+QState System::Stopping2(System * const me, QEvt const * const e) {
+    switch (e->sig) {
+        case Q_ENTRY_SIG: {
+            EVENT(e);
+            me->GetHsm().ResetOutSeq();
+
+            Evt *evt = new CompositeActStopReq(COMPOSITE_ACT, SYSTEM, GEN_SEQ());
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
+
+            evt = new SimpleActStopReq(SIMPLE_ACT, SYSTEM, GEN_SEQ());
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
+
+            evt = new DemoStopReq(DEMO, SYSTEM, GEN_SEQ());
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
+
+            evt = new WashStopReq(AO_WASHING_MACHINE, SYSTEM, GEN_SEQ());
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
+
+            evt = new TrafficStopReq(TRAFFIC, SYSTEM, GEN_SEQ());
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
+
+            evt = new GpioInStopReq(USER_BTN, SYSTEM, GEN_SEQ());
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
+
+            evt = new GpioOutStopReq(USER_LED, SYSTEM, GEN_SEQ());
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
+
+            return Q_HANDLED();
+        }
+        case Q_EXIT_SIG: {
+            EVENT(e);
+            return Q_HANDLED();
+        }
+        case COMPOSITE_ACT_STOP_CFM:
+        case SIMPLE_ACT_STOP_CFM:
+        case DEMO_STOP_CFM:
+        case WASH_STOP_CFM:
+        case TRAFFIC_STOP_CFM:
+        case GPIO_IN_STOP_CFM:
+        case GPIO_OUT_STOP_CFM: {
+            EVENT(e);
+            ErrorEvt const &cfm = ERROR_EVT_CAST(*e);
+            bool allReceived;
+            if (!me->GetHsm().HandleCfmRsp(cfm, allReceived)) {
+                Evt *evt = new Failed(GET_HSMN(), cfm.GetError(), cfm.GetOrigin(), cfm.GetReason());
+                me->PostSync(evt);
+            } else if (allReceived) {
+                Evt *evt = new Evt(DONE, GET_HSMN());
+                me->PostSync(evt);
+            }
+            return Q_HANDLED();
+        }
+    }
+    return Q_SUPER(&System::Stopping);
+}
+
+QState System::Started(System * const me, QEvt const * const e) {
+    switch (e->sig) {
+        case Q_ENTRY_SIG: {
+            EVENT(e);
+            return Q_HANDLED();
+        }
+        case Q_EXIT_SIG: {
+            EVENT(e);
+            me->m_idleCntTimer.Stop();
+            return Q_HANDLED();
+        }
+        case IDLE_CNT_TIMER: {
+            uint32_t idleCnt = GetIdleCnt();
+            idleCnt = LESS(idleCnt, me->m_maxIdleCnt);
+            me->m_cpuUtilPercent = 100 - (idleCnt*100 / me->m_maxIdleCnt);
+            PRINT("Utilization = %d\n\r", me->m_cpuUtilPercent);
+            return Q_HANDLED();
+        }
+        case SYSTEM_CPU_UTIL_REQ: {
+            SystemCpuUtilReq const &req = static_cast<SystemCpuUtilReq const &>(*e);
+            if (req.GetEnable()) {
+                LOG("CPU util enabled");
+                // Reset idle count in bsp.cpp
+                GetIdleCnt();
+                me->m_idleCntTimer.Restart(IDLE_CNT_POLL_TIMEOUT_MS, Timer::PERIODIC);
+            } else {
+                LOG("CPU util disabled");
+                me->m_idleCntTimer.Stop();
+            }
+            return Q_HANDLED();
+        }
+        // Hooks up USER_BTN to Traffic for testing. 
+        case GPIO_IN_PULSE_IND: {
+            EVENT(e);
+            LOG("Car arriving in NS direction");
+            Evt *evt = new TrafficCarNSReq(TRAFFIC, GET_HSMN());
+            Fw::Post(evt);
+            return Q_HANDLED();
+        }
+        case GPIO_IN_HOLD_IND: {
+            EVENT(e);
+            LOG("Car arriving in EW direction");
+            Evt *evt = new TrafficCarEWReq(TRAFFIC, GET_HSMN());
+            Fw::Post(evt);
+            return Q_HANDLED();
+        }
+    }
+    return Q_SUPER(&System::Root);
+}
+
+/*
+QState System::MyState(System * const me, QEvt const * const e) {
+    switch (e->sig) {
+        case Q_ENTRY_SIG: {
+            EVENT(e);
+            return Q_HANDLED();
+        }
+        case Q_EXIT_SIG: {
+            EVENT(e);
+            return Q_HANDLED();
+        }
+        case Q_INIT_SIG: {
+            return Q_TRAN(&System::SubState);
+        }
+    }
+    return Q_SUPER(&System::SuperState);
+}
+*/
 
 } // namespace APP

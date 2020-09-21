@@ -45,21 +45,20 @@
 
 namespace FW {
 
-//****************************************************************************
 #define HSMN_BIT_SIZE                       8
 #define HSMN_BIT_MASK                       BIT_MASK_OF_SIZE(HSMN_BIT_SIZE)
 
 // Storage size must >= HSMN_BIT_SIZE.
 typedef uint8_t Hsmn;
+Q_ASSERT_COMPILE((HSMN_BIT_SIZE) <= (8 * sizeof(Hsmn)));
 
 enum {
     HSM_UNDEF = 0,          // HSM number 0 is reserved. Must not be used.
-    HSM_START,              // This is where HSM number in application starts.
-    MAX_HSM_COUNT = 32      // Maximum number of HSM's including HSM_UNDEF.
+    MAX_HSM_COUNT = 64,     // Maximum number of HSM's including HSM_UNDEF.
                             // That is valid HSM number is from 1 to MAX_HSM_COUNT - 1.
+    INSTANCE_UNDEF = (uint32_t)-1
 };
 
-//****************************************************************************
 #define EVT_TYPE_BIT_SIZE                   8
 #define EVT_TYPE_BIT_MASK                   BIT_MASK_OF_SIZE(EVT_TYPE_BIT_SIZE)
 
@@ -86,6 +85,19 @@ enum {
 typedef QP::QSignal EvtCount;
 typedef char const * const *EvtName;
 typedef uint16_t Sequence;
+
+enum {
+    CTRLC = 0x03,
+    BS  = 0x08,
+    LF  = 0x0A,
+    CR  = 0x0D,
+    ESC = 0x1B,
+    SP  = 0x20,
+    DEL = 0x7F,
+    TAB = 0x09,
+    QUOTE = 0x22,
+    SLASH = 0x5C,
+};
 
 } // namespace FW
 

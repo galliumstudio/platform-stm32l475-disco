@@ -44,13 +44,17 @@
 #include "fw_map.h"
 #include "fw_pipe.h"
 #include "fw_bitset.h"
+#include "fw_evtSet.h"
 #include "fw_assert.h"
 
 #define FW_LOG_ASSERT(t_) ((t_) ? (void)0 : Q_onAssert("fw_log.h", (int_t)__LINE__))
 
 namespace FW {
 
-#define PRINT(format_, ...)      Log::Print(format_, ## __VA_ARGS__)
+#define SET_EVT_NAME(evtHsmn_)   Log::SetEvtName(evtHsmn_, timerEvtName, ARRAY_COUNT(timerEvtName), \
+                                                 internalEvtName, ARRAY_COUNT(internalEvtName), \
+                                                 interfaceEvtName, ARRAY_COUNT(interfaceEvtName))
+#define PRINT(format_, ...)      Log::Print(HSM_UNDEF, format_, ## __VA_ARGS__)
 // The following macros can only be used within an HSM. Newline is automatically appended.
 #define EVENT(e_)                Log::Event(Log::TYPE_LOG, me->GetHsm().GetHsmn(), e_, __FUNCTION__);
 #define INFO(format_, ...)       Log::Debug(Log::TYPE_INFO, me->GetHsm().GetHsmn(), format_, ## __VA_ARGS__)
@@ -59,13 +63,13 @@ namespace FW {
 #define WARNING(format_, ...)    Log::Debug(Log::TYPE_WARNING, me->GetHsm().GetHsmn(), format_, ## __VA_ARGS__)
 #define ERROR(format_, ...)      Log::Debug(Log::TYPE_ERROR, me->GetHsm().GetHsmn(), format_, ## __VA_ARGS__)
 
-#define BUF_PRINT(buf_, len_, unit_, label_)    Log::BufPrint(buf_, len_, unit_, label_)
+#define PRINT_BUF(buf_, len_, unit_, label_)    Log::PrintBuf(HSM_UNDEF, buf_, len_, unit_, label_)
 // The following macros can only be used within an HSM. Newline is automatically appended.
-#define BUF_INFO(buf_, len_, unit_, label_)     Log::BufDebug(Log::TYPE_INFO, me->GetHsm().GetHsmn(), buf_, len_, unit_, label_)
-#define BUF_LOG(buf_, len_, unit_, label_)      Log::BufDebug(Log::TYPE_LOG, me->GetHsm().GetHsmn(), buf_, len_, unit_, label_)
-#define BUF_CRITICAL(buf_, len_, unit_, label_) Log::BufDebug(Log::TYPE_CRITICAL, me->GetHsm().GetHsmn(), buf_, len_, unit_, label_)
-#define BUF_WARNING(buf_, len_, unit_, label_)  Log::BufDebug(Log::TYPE_WARNING, me->GetHsm().GetHsmn(), buf_, len_, unit_, label_)
-#define BUF_ERROR(buf_, len_, unit_, label_)    Log::BufDebug(Log::TYPE_ERROR, me->GetHsm().GetHsmn(), buf_, len_, unit_, label_)
+#define INFO_BUF(buf_, len_, unit_, label_)     Log::DebugBuf(Log::TYPE_INFO, me->GetHsm().GetHsmn(), buf_, len_, unit_, label_)
+#define LOG_BUF(buf_, len_, unit_, label_)      Log::DebugBuf(Log::TYPE_LOG, me->GetHsm().GetHsmn(), buf_, len_, unit_, label_)
+#define CRITICAL_BUF(buf_, len_, unit_, label_) Log::DebugBuf(Log::TYPE_CRITICAL, me->GetHsm().GetHsmn(), buf_, len_, unit_, label_)
+#define WARNING_BUF(buf_, len_, unit_, label_)  Log::DebugBuf(Log::TYPE_WARNING, me->GetHsm().GetHsmn(), buf_, len_, unit_, label_)
+#define ERROR_BUF(buf_, len_, unit_, label_)    Log::DebugBuf(Log::TYPE_ERROR, me->GetHsm().GetHsmn(), buf_, len_, unit_, label_)
 
 class Log {
 public:
@@ -91,17 +95,36 @@ public:
         DEFAULT_VERBOSITY = 0
     };
 
-    // Add and remove output device interface.
-    static void AddInterface(Hsmn hsmn, Fifo *fifo, QP::QSignal sig);
-    static void RemoveInterface(Hsmn hsmn);
+    enum {
+        BUF_LEN = 160,
+        BYTE_PER_LINE = 16
+    };
 
-    static void Write(char const *buf, uint32_t len);
-    static uint32_t Print(char const *format, ...);
-    static void PrintItem(uint32_t &index, uint32_t minWidth, uint32_t itemPerLine, char const *format, ...);
+    // Set event names for an HSM.
+    static void SetEvtName(Hsmn evtHsmn, EvtName timerEvtName, EvtCount timerEvtCount,
+                           EvtName internalEvtName, EvtCount internalEvtCount,
+                           EvtName interfaceEvtName, EvtCount interfaceEvtCount);
+    static char const *GetEvtName(QP::QSignal signal);
+    static char const *GetBuiltinEvtName(QP::QSignal signal);
+    static char const *GetUndefName() { return m_undefName; }
+
+    // Add and remove output device interface.
+    static void AddInterface(Hsmn infHsmn, Fifo *fifo, QP::QSignal sig, bool isDefault);
+    static void RemoveInterface(Hsmn infHsmn);
+
+    static uint32_t Write(Hsmn infHsmn, char const *buf, uint32_t len);
+    static void WriteDefault(char const *buf, uint32_t len);
+    static uint32_t PutChar(Hsmn infHsmn, char c);
+    static uint32_t PutCharN(Hsmn infHsmn, char c, uint32_t count);
+    static uint32_t PutStr(Hsmn infHsmn, char const *str);
+    static void PutStrOver(Hsmn infHsmn, char const *str, uint32_t oldLen);
+    static uint32_t Print(Hsmn infHsmn, char const *format, ...);
+    static uint32_t PrintItem(Hsmn infHsmn, uint32_t index, uint32_t minWidth, uint32_t itemPerLine, char const *format, ...);
     static void Event(Type type, Hsmn hsmn, QP::QEvt const *e, char const *func);
     static void Debug(Type type, Hsmn hsmn, char const *format, ...);
-    static void BufPrint(uint8_t const *dataBuf, uint32_t dataLen, uint8_t align = 1, uint32_t label = 0);
-    static void BufDebug(Type type, Hsmn hsmn, uint8_t const *dataBuf, uint32_t dataLen, uint8_t align = 1, uint32_t label = 0);
+    static uint32_t PrintBufLine(Hsmn infHsmn, uint8_t const *lineBuf, uint32_t lineLen, uint8_t unit, uint32_t lineLabel);
+    static uint32_t PrintBuf(Hsmn infHsmn, uint8_t const *dataBuf, uint32_t dataLen, uint8_t align = 1, uint32_t label = 0);
+    static void DebugBuf(Type type, Hsmn hsmn, uint8_t const *dataBuf, uint32_t dataLen, uint8_t align = 1, uint32_t label = 0);
 
     static uint8_t GetVerbosity() { return m_verbosity; }
     static void SetVerbosity(uint8_t v) {
@@ -112,29 +135,29 @@ public:
     static void Off(Hsmn hsmn);
     static void OnAll();
     static void OffAll();
+    static bool IsOn(Hsmn hsmn) { return m_on.IsSet(hsmn); }
 
-    static char const *GetEvtName(QP::QSignal sig);
     static char const *GetHsmName(Hsmn hsmn);
     static char const *GetTypeName(Type type);
+    static char const *GetState(Hsmn hsmn);
 private:
+    // EvtSetStor is a pointer to an array of EvtSet with MAX_HSM_COUNT elements.
+    typedef EvtSet (*EvtSetStor)[MAX_HSM_COUNT];
+    static EvtSetStor GetEvtSetStor();
     static bool IsOutput(Type type, Hsmn hsmn);
-    static void BufLinePrint(uint8_t const *lineBuf, uint32_t lineLen, uint8_t unit, uint32_t lineLabel);
-
-    enum {
-        BUF_LEN = 160,
-        BYTE_PER_LINE = 16
-    };
 
     class Inf {
     public:
-        Inf(Fifo *fifo = NULL, QP::QSignal sig = 0) :
-            m_fifo(fifo), m_sig(sig) {
+        Inf(Fifo *fifo = NULL, QP::QSignal sig = 0, bool isDefault = false) :
+            m_fifo(fifo), m_sig(sig), m_isDefault(isDefault) {
         }
         Fifo *GetFifo() const { return m_fifo; }
         QP::QSignal GetSig() const { return m_sig; }
+        bool IsDefault() const { return m_isDefault; }
     private:
         Fifo *m_fifo;
         QP::QSignal m_sig;
+        bool m_isDefault;   // True if this is a default interface for log output when interface is not specified.
         // Use built-in memberwise copy constructor and assignment operator.
     };
 
@@ -148,6 +171,9 @@ private:
     static HsmnInfMap m_hsmnInfMap;
     static char const * const m_typeName[NUM_TYPE];
     static char const m_truncatedError[];
+    static QP::QSignal const m_entrySig;
+    static char const * const m_builtinEvtName[];
+    static char const m_undefName[];
 };
 
 } // namespace FW

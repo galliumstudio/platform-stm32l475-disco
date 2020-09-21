@@ -37,7 +37,10 @@
  ******************************************************************************/
 
 #include "fw_hsm.h"
+#include "fw_inline.h"
+#include "fw_log.h"
 #include "fw_assert.h"
+#include "fw.h"
 
 FW_DEFINE_THIS_FILE("fw_hsm.cpp")
 
@@ -45,47 +48,14 @@ using namespace QP;
 
 namespace FW {
 
-char const * const Hsm::m_builtinEvtName[] = {
-    "NULL",
-    "ENTRY",
-    "EXIT",
-    "INIT"
-};
+Hsm::Hsm(Hsmn hsmn, char const *name, QP::QHsm *qhsm) :
+    m_hsmn(hsmn), m_name(name), m_qhsm(qhsm), m_state(Log::GetUndefName()),
+    m_nextSequence(0), m_inHsmnSeq(HSM_UNDEF, 0),
+    m_outHsmnSeqMap(m_outHsmnSeqStor, ARRAY_COUNT(m_outHsmnSeqStor), HsmnSeq(HSM_UNDEF, 0)) {}
 
-char const Hsm::m_undefName[] = "UNDEF";
-
-void Hsm::Init(Active *container) {
+void Hsm::Init(QActive *container) {
     m_deferEQueue.Init(container, m_deferQueueStor, ARRAY_COUNT(m_deferQueueStor));
-}
-
-char const *Hsm::GetBuiltinEvtName(QP::QSignal signal) {
-    if (signal < Q_USER_SIG) {
-        return m_builtinEvtName[signal];
-    }
-    return m_undefName;
-}
-
-char const *Hsm::GetEvtName(QSignal signal) const {
-    uint32_t index;
-    if (signal < Q_USER_SIG) {
-        return GetBuiltinEvtName(signal);
-    } else if (IS_TIMER_EVT(signal)) {
-        index = GET_TIMER_EVT_INDEX(signal);
-        if (m_timerEvtName && (index < m_timerEvtCount)) {
-            return m_timerEvtName[index];
-        }
-    } else if (IS_INTERNAL_EVT(signal)) {
-        index = GET_INTERNAL_EVT_INDEX(signal);
-        if (m_internalEvtName && (index < m_internalEvtCount)) {
-            return m_internalEvtName[index];
-        }
-    } else {
-        index = GET_INTERFACE_EVT_INDEX(signal);
-        if (m_interfaceEvtName && (index < m_interfaceEvtCount)) {
-            return m_interfaceEvtName[index];
-        }
-    }
-    return m_undefName;
+    m_reminderQueue.init(m_reminderQueueStor, ARRAY_COUNT(m_reminderQueueStor));
 }
 
 bool Hsm::MatchOutSeq(Hsmn hsmn, Sequence seqToMatch, bool autoClear) {
@@ -104,6 +74,37 @@ bool Hsm::MatchOutSeq(Hsmn hsmn, Sequence seqToMatch, bool autoClear) {
         *hsmnSeq = m_outHsmnSeqMap.GetUnusedKv();
     }
     return true;
+}
+
+// @description Standard handling of a confirmation or response event.
+// @param[in] e - Event to handle.
+// @param[out] allReceived -  Set to true if all expected confirmation/response have been received without errors.
+// @return Handling status - true if the event was handled without error. This includes the event being ignored
+//                           due to sequence number mismatch.
+//                           false if the event matches sequence number and reports an error.
+bool Hsm::HandleCfmRsp(ErrorEvt const &e, bool &allReceived) {
+    allReceived = false;
+    if (MatchOutSeq(e)) {
+        if (e.GetError() != ERROR_SUCCESS) {
+            return false;
+        }
+        if(IsOutSeqAllCleared()) {
+            allReceived = true;
+        }
+    }
+    return true;
+}
+
+void Hsm::DispatchReminder() {
+    while (QEvt const *reminder = m_reminderQueue.get()) {
+        m_qhsm->QHsm::dispatch(reminder);
+        // A reminder event must be dynamic and is garbage collected after being processed.
+        FW_ASSERT(QF_EVT_POOL_ID_(reminder) != 0);
+        // A reminder event must be an internal or interface event (but not a timer event).
+        FW_ASSERT(IS_EVT_HSMN_VALID(reminder->sig) && (!IS_TIMER_EVT(reminder->sig)));
+        FW_ASSERT(EVT_CAST(*reminder).GetTo() == m_hsmn);
+        QF::gc(reminder);
+    }
 }
 
 } // namespace FW

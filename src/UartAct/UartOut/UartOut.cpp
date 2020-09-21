@@ -81,13 +81,19 @@ void UartOut::DmaCompleteCallback(Hsmn hsmn) {
     Fw::Post(evt);
 }
 
+void UartOut::CleanCache(uint32_t addr, uint32_t len) {
+    // Cache not available on this platform.
+    //SCB_CleanDCache_by_Addr(reinterpret_cast<uint32_t *>(ROUND_DOWN_32(addr)), ROUND_UP_32(addr + len) - ROUND_DOWN_32(addr));
+    (void)addr;
+    (void)len;
+}
+
 UartOut::UartOut(Hsmn hsmn, char const *name, UART_HandleTypeDef &hal) :
-    Region((QStateHandler)&UartOut::InitialPseudoState, hsmn, name,
-           timerEvtName, ARRAY_COUNT(timerEvtName),
-           internalEvtName, ARRAY_COUNT(internalEvtName),
-           interfaceEvtName, ARRAY_COUNT(interfaceEvtName)),
-    m_hal(hal), m_client(HSM_UNDEF), m_fifo(NULL), m_writeCount(0),
-    m_activeTimer(this->GetHsm().GetHsmn(), ACTIVE_TIMER) {}
+    Region((QStateHandler)&UartOut::InitialPseudoState, hsmn, name),
+    m_hal(hal), m_manager(HSM_UNDEF), m_client(HSM_UNDEF), m_fifo(NULL), m_writeCount(0),
+    m_activeTimer(this->GetHsm().GetHsmn(), ACTIVE_TIMER) {
+    SET_EVT_NAME(UART_OUT);
+}
 
 QState UartOut::InitialPseudoState(UartOut * const me, QEvt const * const e) {
     (void)e;
@@ -151,9 +157,7 @@ QState UartOut::Stopped(UartOut * const me, QEvt const * const e) {
         case UART_OUT_START_REQ: {
             EVENT(e);
             UartOutStartReq const &req = static_cast<UartOutStartReq const &>(*e);
-            FW::Active *container = me->GetContainer();
-            FW_ASSERT(container);
-            FW_ASSERT(req.GetFrom() == container->GetHsm().GetHsmn());
+            me->m_manager = req.GetFrom();
             me->m_fifo = req.GetFifo();
             FW_ASSERT(me->m_fifo);
             me->m_fifo->Reset();
@@ -269,10 +273,7 @@ QState UartOut::Active(UartOut * const me, QEvt const * const e) {
         // Gallium - TODO Add HW_FAIL
         case ACTIVE_TIMER: {
             EVENT(e);
-            // Need FW:: to avoid from being confused with the state Active.
-            FW::Active *container = me->GetContainer();
-            FW_ASSERT(container);
-            Evt *evt = new UartOutFailInd(container->GetHsm().GetHsmn(), GET_HSMN(), GEN_SEQ(), ERROR_TIMEOUT, GET_HSMN());
+            Evt *evt = new UartOutFailInd(me->m_manager, GET_HSMN(), GEN_SEQ(), ERROR_TIMEOUT, GET_HSMN());
             Fw::Post(evt);
             status = Q_TRAN(&UartOut::Failed);
             break;
@@ -294,12 +295,12 @@ QState UartOut::Normal(UartOut * const me, QEvt const * const e) {
             Fifo &fifo = *(me->m_fifo);
             uint32_t addr = fifo.GetReadAddr();
             uint32_t len = fifo.GetUsedCount();
-            if ((addr + len - 1) > fifo.GetMaxAddr()) {
-                len = fifo.GetMaxAddr() - addr + 1;
+            if ((addr + len) > fifo.GetEndAddr()) {
+                len = fifo.GetEndAddr() - addr;
             }
             FW_ASSERT((len > 0) && (len <= fifo.GetUsedCount()));
-            // Gallium - Only applicable to STM32F7.
-            //SCB_CleanDCache_by_Addr((uint32_t *)(ROUND_DOWN_32(addr)), ROUND_UP_32(addr + len - ROUND_DOWN_32(addr)));
+            // Must enable the following call when write-back policy is used. See MPU_Config() in main.cpp.
+            me->m_fifo->CacheOp(UartOut::CleanCache, len);
             HAL_UART_Transmit_DMA(&me->m_hal, (uint8_t*)addr, len);
             me->m_writeCount = len;
             status = Q_HANDLED();

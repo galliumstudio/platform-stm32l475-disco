@@ -62,6 +62,9 @@ public:
     static void SaveHal(Hsmn hsmn, UART_HandleTypeDef *hal);
     static UART_HandleTypeDef *GetHal(Hsmn hsmn);
     static Hsmn GetHsmn(UART_HandleTypeDef *hal);
+    static uint16_t GetInst(Hsmn hsmn);
+    static Hsmn GetUartInHsmn(Hsmn hsmn) { return UART_IN + GetInst(hsmn); }
+    static Hsmn GetUartOutHsmn(Hsmn hsmn) { return UART_OUT + GetInst(hsmn); }
 
     UartAct(Hsmn hsmn, char const *name, char const *inName, char const *outName);
 
@@ -77,8 +80,6 @@ protected:
 
     void InitUart();
     void DeInitUart();
-
-    void HandleCfmRsp(ErrorEvt const &e);
 
     typedef struct {
         // Key

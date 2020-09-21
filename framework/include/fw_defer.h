@@ -44,18 +44,16 @@
 
 namespace FW {
 
-class Active;
-
 class DeferEQueue : public QP::QEQueue {
 public:
     DeferEQueue() : m_container(NULL) {}
 
-    void Init(Active *container, QP::QEvt const *qSto[], uint16_t qLen);
+    void Init(QP::QActive *container, QP::QEvt const *qSto[], uint16_t qLen);
     bool Defer(QP::QEvt const *e);
     void Recall();
 
 private:
-    Active *m_container;
+    QP::QActive *m_container;
 };
 
 } // namespace FW

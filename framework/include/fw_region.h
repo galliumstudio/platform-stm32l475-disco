@@ -47,29 +47,29 @@
 namespace FW {
 
 class Active;
+class XThread;
 
 class Region : public QP::QHsm {
 public:
-    Region(QP::QStateHandler const initial, Hsmn hsmn, char const *name,
-            EvtName timerEvtName, EvtCount timerEvtCount,
-            EvtName internalEvtName, EvtCount internalEvtCount,
-            EvtName interfaceEvtName, EvtCount interfaceEvtCount) :
+    Region(QP::QStateHandler const initial, Hsmn hsmn, char const *name) :
         QP::QHsm(initial),
-        m_hsm(hsmn, name, NULL, this,
-              timerEvtName, timerEvtCount,
-              internalEvtName, internalEvtCount,
-              interfaceEvtName, interfaceEvtCount),
+        m_hsm(hsmn, name, this),
         m_container(NULL) {}
 
     void Init(Active *container);
+    void Init(XThread *container);
     Hsm &GetHsm() { return m_hsm; }
+    Hsmn GetHsmn() const { return m_hsm.GetHsmn(); }
+    Sequence GenSeq() { return m_hsm.GenSeq(); }
+
+    virtual void dispatch(QP::QEvt const * const e);
 
 protected:
     void PostSync(Evt const *e);
-    Active *GetContainer() { return m_container; }
+    QP::QActive *GetContainer() { return m_container; }
 
     Hsm m_hsm;
-    Active *m_container;
+    QP::QActive *m_container;
 };
 
 } // namespace FW

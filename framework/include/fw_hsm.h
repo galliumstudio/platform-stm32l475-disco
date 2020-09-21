@@ -55,35 +55,18 @@
 
 namespace FW {
 
-class Active;
-class Region;
-
 typedef KeyValue<Hsmn, Sequence> HsmnSeq;
 typedef Map<Hsmn, Sequence> HsmnSeqMap;
 
 class Hsm {
 public:
-    Hsm(Hsmn hsmn, char const *name, Active *active, Region *region,
-        EvtName timerEvtName, EvtCount timerEvtCount,
-        EvtName internalEvtName, EvtCount internalEvtCount,
-        EvtName interfaceEvtName, EvtCount interfaceEvtCount) :
-        m_hsmn(hsmn), m_name(name), m_active(active), m_region(region), m_state(m_undefName),
-        m_timerEvtName(timerEvtName), m_timerEvtCount(timerEvtCount),
-        m_internalEvtName(internalEvtName), m_internalEvtCount(internalEvtCount),
-        m_interfaceEvtName(interfaceEvtName), m_interfaceEvtCount(interfaceEvtCount),
-        m_nextSequence(0), m_inHsmnSeq(HSM_UNDEF, 0),
-        m_outHsmnSeqMap(m_outHsmnSeqStor, ARRAY_COUNT(m_outHsmnSeqStor), HsmnSeq(HSM_UNDEF, 0)) {}
-    void Init(Active *container);
+    Hsm(Hsmn hsmn, char const *name, QP::QHsm *qhsm);
+    void Init(QP::QActive *container);
 
     Hsmn GetHsmn() const { return m_hsmn; }
     char const *GetName() const { return m_name; }
-    Active *GetActive() { return m_active; }
-    Region *GetRegion() { return m_region; }
     char const *GetState() const { return m_state; }
     void SetState(char const *s) { m_state = s; }
-    static char const *GetBuiltinEvtName(QP::QSignal signal);
-    char const *GetEvtName(QP::QSignal signal) const;
-    static char const *GetUndefName() { return m_undefName; }
 
     Sequence GenSeq() { return m_nextSequence++; }
     bool Defer(QP::QEvt const *e) { return m_deferEQueue.Defer(e); }
@@ -105,6 +88,7 @@ public:
         return (m_outHsmnSeqMap.GetByKey(hsmn) == NULL);
     }
     bool IsOutSeqAllCleared() { return (m_outHsmnSeqMap.GetUsedCount() == 0); }
+    bool HandleCfmRsp(ErrorEvt const &e, bool &allReceived);
 
     void SaveInSeq(Hsmn hsmn, Sequence seq) {
         m_inHsmnSeq.SetKey(hsmn);
@@ -119,32 +103,28 @@ public:
     Hsmn GetInHsmn() { return m_inHsmnSeq.GetKey(); }
     Sequence GetInSeq() { return m_inHsmnSeq.GetValue(); }
 
+    void PostReminder(QP::QEvt const *e) { m_reminderQueue.post(e, QP::QF_NO_MARGIN); }
+    void DispatchReminder();
+
 protected:
     enum {
-        OUT_HSMN_SEQ_MAP_COUNT = 8,
-        DEFER_QUEUE_COUNT = 16
+        OUT_HSMN_SEQ_MAP_COUNT = 16,
+        DEFER_QUEUE_COUNT = 16,
+        REMINDER_QUEUE_COUNT = 4
     };
 
     Hsmn m_hsmn;
     char const * m_name;
-    Active *m_active;
-    Region *m_region;
+    QP::QHsm *m_qhsm;
     char const *m_state;
-    EvtName m_timerEvtName;
-    EvtCount m_timerEvtCount;
-    EvtName m_internalEvtName;
-    EvtCount m_internalEvtCount;
-    EvtName m_interfaceEvtName;
-    EvtCount m_interfaceEvtCount;
     Sequence m_nextSequence;
     DeferEQueue m_deferEQueue;
+    QP::QEQueue m_reminderQueue;
     HsmnSeq m_inHsmnSeq;
     HsmnSeq m_outHsmnSeqStor[OUT_HSMN_SEQ_MAP_COUNT];
     HsmnSeqMap m_outHsmnSeqMap;
     QP::QEvt const *m_deferQueueStor[DEFER_QUEUE_COUNT];
-
-    static char const * const m_builtinEvtName[];
-    static char const m_undefName[];
+    QP::QEvt const *m_reminderQueueStor[REMINDER_QUEUE_COUNT];
 };
 
 } // namespace FW

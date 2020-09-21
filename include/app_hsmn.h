@@ -36,61 +36,92 @@
  * Email - admin@galliumstudio.com
  ******************************************************************************/
 
-#ifndef HSM_ID_H
-#define HSM_ID_H
+#ifndef HSM_NUM_H
+#define HSM_NUM_H
 
 #include "fw_def.h"
 
 namespace APP {
 
+#define APP_HSM \
+    ADD_HSM(SYSTEM, 1) \
+    ADD_HSM(CONSOLE, 2) \
+    ADD_HSM(CMD_INPUT, 2) \
+    ADD_HSM(CMD_PARSER, 2) \
+    ADD_HSM(UART_ACT, 2) \
+    ADD_HSM(UART_IN, 2) \
+    ADD_HSM(UART_OUT, 2) \
+    ADD_HSM(WIFI, 1) \
+    ADD_HSM(DISP, 2) \
+    ADD_HSM(SENSOR, 1) \
+    ADD_HSM(SENSOR_ACCEL_GYRO, 1) \
+    ADD_HSM(SENSOR_HUMID_TEMP, 1) \
+    ADD_HSM(SENSOR_MAG, 1) \
+    ADD_HSM(SENSOR_PRESS, 1) \
+    ADD_HSM(GPIO_IN_ACT, 1) \
+    ADD_HSM(GPIO_IN, 1) \
+    ADD_HSM(DEMO, 1) \
+    ADD_HSM(GPIO_OUT_ACT, 1) \
+    ADD_HSM(GPIO_OUT, 1) \
+    ADD_HSM(AO_WASHING_MACHINE, 1) \
+    ADD_HSM(TRAFFIC, 1) \
+    ADD_HSM(LAMP, 2) \
+    ADD_HSM(LEVEL_METER, 1) \
+    ADD_HSM(SIMPLE_ACT, 1) \
+    ADD_HSM(SIMPLE_REG, 1) \
+    ADD_HSM(COMPOSITE_ACT, 1) \
+    ADD_HSM(COMPOSITE_REG, 4)
+
+#define ALIAS_HSM \
+    ADD_ALIAS(CONSOLE_UART1,    CONSOLE) \
+    ADD_ALIAS(CMD_INPUT_UART1,  CMD_INPUT) \
+    ADD_ALIAS(CMD_PARSER_UART1, CMD_PARSER) \
+    ADD_ALIAS(UART1_ACT, UART_ACT) \
+    ADD_ALIAS(UART1_IN,  UART_IN) \
+    ADD_ALIAS(UART1_OUT, UART_OUT) \
+    ADD_ALIAS(LEDPANEL,  DISP) \
+    ADD_ALIAS(ILI9341,   DISP+1) \
+    ADD_ALIAS(USER_BTN,        GPIO_IN) \
+    ADD_ALIAS(USER_LED,        GPIO_OUT) \
+    ADD_ALIAS(LAMP_NS, LAMP) \
+    ADD_ALIAS(LAMP_EW, LAMP+1) \
+    ADD_ALIAS(COMPOSITE_REG0, COMPOSITE_REG) \
+    ADD_ALIAS(COMPOSITE_REG1, COMPOSITE_REG+1) \
+    ADD_ALIAS(COMPOSITE_REG2, COMPOSITE_REG+2) \
+    ADD_ALIAS(COMPOSITE_REG3, COMPOSITE_REG+3)
+
+#undef ADD_HSM
+#undef ADD_ALIAS
+#define ADD_HSM(hsmn_, count_) hsmn_, hsmn_##_COUNT = count_, hsmn_##_LAST = hsmn_ + count_ - 1,
+#define ADD_ALIAS(alias_, to_) alias_ = to_,
+
 enum {
-    SYSTEM = FW::HSM_START,
-    UART_ACT,
-    UART_ACT_COUNT = 1,
-        UART1_ACT = UART_ACT,
-    UART_ACT_LAST = UART_ACT + UART_ACT_COUNT - 1,
-    UART_IN,
-    UART_IN_COUNT = UART_ACT_COUNT,
-        UART1_IN = UART_IN,
-    UART_IN_LAST = UART_IN + UART_IN_COUNT - 1,
-    UART_OUT,
-    UART_OUT_COUNT = UART_ACT_COUNT,
-        UART1_OUT = UART_OUT,
-    UART_OUT_LAST = UART_OUT + UART_OUT_COUNT - 1,
-    CONSOLE,
-    BTN_GRP,
-    BTN,
-    BTN_COUNT = 1,
-        SEL_BTN = BTN,
-    BTN_LAST = BTN + BTN_COUNT - 1,
-    LED_GRP,
-    LED,
-    LED_COUNT = 1,
-        LED0 = LED,
-    LED_LAST = LED + LED_COUNT - 1,
-    SAMPLE,
-    SAMPLE_REG,
-    SAMPLE_REG_COUNT = 4,
-        SAMPLE_REG0 = SAMPLE_REG,     // Optional.
-        SAMPLE_REG1,                  // Optional.
-        SAMPLE_REG2,                  // Optional.
-        SAMPLE_REG3,                  // Optional.
-    SAMPLE_REG_LAST = SAMPLE_REG + SAMPLE_REG_COUNT - 1,
-    HSM_COUNT
+    APP_HSM_START = FW::HSM_UNDEF,
+    APP_HSM
+    HSM_COUNT,
+    ALIAS_HSM
 };
 
 // Higher value corresponds to higher priority.
 // The maximum priority is defined in qf_port.h as QF_MAX_ACTIVE (32)
 enum
 {
-    PRIO_UART1_ACT  = 10, //30,
-    PRIO_CONSOLE    = 28,
-    PRIO_SYSTEM     = 26,
-    PRIO_BTN_GRP    = 24,
-    PRIO_LED_GRP    = 22,
-    PRIO_SAMPLE     = 5
+    PRIO_UART1_ACT      = 29,
+    PRIO_CONSOLE_UART1  = 27,
+    PRIO_SYSTEM         = 26,
+    PRIO_LEDPANEL       = 24,
+    PRIO_ILI9341        = 22,
+    PRIO_GPIO_IN_ACT    = 16,
+    PRIO_DEMO           = 10,
+    PRIO_GPIO_OUT_ACT   = 9,
+    PRIO_TEST_LED       = 8,
+    PRIO_AO_WASHING_MACHINE = 7,
+    PRIO_TRAFFIC        = 6,
+    PRIO_LEVEL_METER    = 5,
+    PRIO_SIMPLE_ACT     = 4,
+    PRIO_COMPOSITE_ACT  = 3
 };
 
 } // namespace APP
 
-#endif // HSM_ID_H
+#endif // HSM_NUM_H

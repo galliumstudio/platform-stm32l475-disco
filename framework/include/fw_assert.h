@@ -40,13 +40,15 @@
 #define FW_ASSERT_H
 
 // This function is defined in bsp.cpp.
-void Q_onAssert(char const * const module, int location);
+extern "C" void Q_onAssert(char const * const module, int location);
 
 #define FW_DEFINE_THIS_FILE(name_) \
     static char const FW_THIS_FILE_[] = name_;
 
+// Avoid using __FILE__ since in GCC it includes the full path which can make it very long.
 #define FW_ASSERT(condition_) \
     ((condition_) ? (void)0 : Q_onAssert(FW_THIS_FILE_, (int)__LINE__))
 
+#define FW_STATIC_ASSERT(condition_) extern int Q_assert_static[(condition_) ? 1 : -1]
 
 #endif // FW_ASSERT_H

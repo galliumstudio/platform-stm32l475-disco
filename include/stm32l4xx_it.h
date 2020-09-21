@@ -88,11 +88,10 @@
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
 
-void SysTick_Handler(void);
-void DMA1_Channel4_IRQHandler(void);
-void USART1_IRQHandler(void);
-void EXTI15_10_IRQHandler(void);
-void EXTI0_IRQHandler(void);
+// Interrupt handlers are declared as weak functions in system/src/cmsis/startup_stm32f767xx.S.
+// There is no need to declare them here again.
+// Application-defined interrupt handlers are defined in stm32f7xx_it.cpp. They are C++ functions
+// with C linkage using 'extern "C"'.
 
 #ifdef __cplusplus
 }

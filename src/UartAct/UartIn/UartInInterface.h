@@ -53,6 +53,7 @@ enum {
     UART_IN_START_CFM,
     UART_IN_STOP_REQ,
     UART_IN_STOP_CFM,
+    UART_IN_DATA_IND,
     UART_IN_FAIL_IND
 };
 
@@ -65,11 +66,13 @@ public:
     enum {
         TIMEOUT_MS = 100
     };
-    UartInStartReq(Hsmn to, Hsmn from, Sequence seq, Fifo *fifo) :
-        Evt(UART_IN_START_REQ, to, from, seq), m_fifo(fifo) {}
+    UartInStartReq(Hsmn to, Hsmn from, Sequence seq, Fifo *fifo, Hsmn client) :
+        Evt(UART_IN_START_REQ, to, from, seq), m_fifo(fifo), m_client(client) {}
     Fifo *GetFifo() const { return m_fifo; }
+    Hsmn GetClient() const { return m_client; }
 private:
     Fifo *m_fifo;
+    Hsmn m_client;
 };
 
 class UartInStartCfm : public ErrorEvt {
@@ -93,6 +96,12 @@ public:
     UartInStopCfm(Hsmn to, Hsmn from, Sequence seq,
                   Error error, Hsmn origin = HSM_UNDEF, Reason reason = 0) :
         ErrorEvt(UART_IN_STOP_CFM, to, from, seq, error, origin, reason) {}
+};
+
+class UartInDataInd : public Evt {
+public:
+    UartInDataInd(Hsmn to, Hsmn from, Sequence seq) :
+        Evt(UART_IN_DATA_IND, to, from, seq) {}
 };
 
 class UartInFailInd : public ErrorEvt {

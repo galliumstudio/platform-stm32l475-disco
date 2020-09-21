@@ -73,7 +73,8 @@
 #include "qpcpp.h"
 #include "app_hsmn.h"
 #include "UartAct.h"
-#include "Btn.h"
+#include "GpioIn.h"
+#include "fw_log.h"
 
 /* USER CODE BEGIN 0 */
 
@@ -91,7 +92,8 @@ using namespace APP;
 /**
 * @brief This function handles System tick timer.
 */
-void SysTick_Handler(void){
+
+extern "C" void SysTick_Handler(void){
   /* USER CODE BEGIN SysTick_IRQn 0 */
 
   /* USER CODE END SysTick_IRQn 0 */
@@ -99,7 +101,7 @@ void SysTick_Handler(void){
   HAL_SYSTICK_IRQHandler();
   /* USER CODE BEGIN SysTick_IRQn 1 */
   QXK_ISR_ENTRY();
-  QP::QF::tickX_(0);
+  QP::QF::tickX_(TICK_RATE_BSP);
   QXK_ISR_EXIT();
   /* USER CODE END SysTick_IRQn 1 */
 }
@@ -113,27 +115,70 @@ void SysTick_Handler(void){
 
 /* USER CODE BEGIN 1 */
 
-// UART2 TX DMA
+// Common handler for UART interrupts.
+// It handles RX error and RXNE interrupts. It does NOT handle TX interrupts.
+// It does NOT pass control to HAL handler.
+void HandleUartIrq(Hsmn hsmn) {
+    UartIn::HwError error = UartIn::HW_ERROR_NONE;
+    UART_HandleTypeDef *hal = UartAct::GetHal(hsmn);
+    volatile uint32_t isrflags   = READ_REG(hal->Instance->ISR);
+    if (isrflags & USART_ISR_NE) {
+        // START bit Noise detection flag. Must clear it or it will cause ISR to be re-entered.
+        __HAL_UART_CLEAR_NEFLAG(hal);
+        error |= UartIn::HW_ERROR_NOISE;
+    }
+    if (isrflags & USART_ISR_FE) {
+        // Frame error flag. Must clear it or it will cause ISR to be re-entered.
+        __HAL_UART_CLEAR_FEFLAG(hal);
+        error |= UartIn::HW_ERROR_FRAME;
+    }
+    if (isrflags & USART_ISR_ORE) {
+        // Overrun error. Reset by setting ORECF in ICR. Alternative, disable ORE by setting OVRDIS.
+        // ORE will trigger interrupt when RXNE interrupt is enabled.
+        // With DMA, overrun should not occur.
+        __HAL_UART_CLEAR_OREFLAG(hal);
+        error |= UartIn::HW_ERROR_OVERRUN;
+    }
+    // Do not check RXNEIE bit as it may have been cleared automatically by DMA.
+    // It is okay to not check as we don't use other UART interrupts (except errors above).
+    // In case an error interrupt occur, it is okay to treat it as if RXNE has occurred.
+    // Disable interrupt to avoid re-entering ISR before event is processed.
+    CLEAR_BIT(hal->Instance->CR1, USART_CR1_RXNEIE);
+    UartIn::RxCallback(UartAct::GetUartInHsmn(hsmn), error);
+    // TX does not use ISR. Do not call HAL handler.
+    //HAL_UART_IRQHandler(hal);
+}
+
+// UART1 TX DMA
 // Must be declared as extern "C" in header.
-void DMA1_Channel4_IRQHandler(void) {
+extern "C" void DMA1_Channel4_IRQHandler(void) {
     QXK_ISR_ENTRY();
     UART_HandleTypeDef *hal = UartAct::GetHal(UART1_ACT);
     HAL_DMA_IRQHandler(hal->hdmatx);
     QXK_ISR_EXIT();
 }
 
-// UART2 TX
+// UART1 RX DMA
 // Must be declared as extern "C" in header.
-void USART1_IRQHandler(void)
-{
+extern "C" void DMA1_Channel5_IRQHandler(void) {
     QXK_ISR_ENTRY();
     UART_HandleTypeDef *hal = UartAct::GetHal(UART1_ACT);
-    HAL_UART_IRQHandler(hal);
+    HAL_DMA_IRQHandler(hal->hdmarx);
     QXK_ISR_EXIT();
 }
 
-// User Button (PC.13)
-void EXTI15_10_IRQHandler(void)
+// UART1 RX
+// Must be declared as extern "C" in header.
+extern "C" void USART1_IRQHandler(void)
+{
+    QXK_ISR_ENTRY();
+    HandleUartIrq(UART1_ACT);
+    QXK_ISR_EXIT();
+}
+
+// GPIO IN
+// Must be declared as extern "C" in header.
+extern "C" void EXTI15_10_IRQHandler(void)
 {
     QXK_ISR_ENTRY();
     HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_15);
@@ -144,19 +189,49 @@ void EXTI15_10_IRQHandler(void)
     HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_10);
     QXK_ISR_EXIT();
 }
-
-/*
-// User Button (PA.0)
-void EXTI0_IRQHandler(void)
+extern "C" void EXTI9_5_IRQHandler(void)
+{
+    QXK_ISR_ENTRY();
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_9);
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_8);
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_7);
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_6);
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_5);
+    QXK_ISR_EXIT();
+}
+extern "C" void EXTI4_IRQHandler(void)
+{
+    QXK_ISR_ENTRY();
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);
+    QXK_ISR_EXIT();
+}
+extern "C" void EXTI3_IRQHandler(void)
+{
+    QXK_ISR_ENTRY();
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_3);
+    QXK_ISR_EXIT();
+}
+extern "C" void EXTI2_IRQHandler(void)
+{
+    QXK_ISR_ENTRY();
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_2);
+    QXK_ISR_EXIT();
+}
+extern "C" void EXTI1_IRQHandler(void)
+{
+    QXK_ISR_ENTRY();
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_1);
+    QXK_ISR_EXIT();
+}
+extern "C" void EXTI0_IRQHandler(void)
 {
     QXK_ISR_ENTRY();
     HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
     QXK_ISR_EXIT();
 }
-*/
 
 void HAL_GPIO_EXTI_Callback(uint16_t pin) {
-    Btn::GpioIntCallback(pin);
+    GpioIn::GpioIntCallback(pin);
 }
 
 /* USER CODE END 1 */
