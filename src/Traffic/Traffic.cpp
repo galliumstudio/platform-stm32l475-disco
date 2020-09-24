@@ -39,7 +39,7 @@
 #include "app_hsmn.h"
 #include "fw_log.h"
 #include "fw_assert.h"
-//#include "DispInterface.h"
+#include "DispInterface.h"
 #include "TrafficInterface.h"
 #include "LampInterface.h"
 #include "Traffic.h"
@@ -128,14 +128,11 @@ QState Traffic::Stopped(Traffic * const me, QEvt const * const e) {
             EVENT(e);
             Evt const &req = EVT_CAST(*e);
 
-            Evt *evt;
             // @todo Need to wait for response.
-            /*
-            evt = new DispStartReq(ILI9341, GET_HSMN(), GEN_SEQ());
+            Evt *evt = new DispStartReq(ILI9341, GET_HSMN(), GEN_SEQ());
             Fw::Post(evt);
             evt = new DispDrawBeginReq(ILI9341, GET_HSMN(), GEN_SEQ());
             Fw::Post(evt);
-            */
 
             evt = new TrafficStartCfm(req.GetFrom(), GET_HSMN(), req.GetSeq(), ERROR_SUCCESS);
             Fw::Post(evt);
@@ -169,10 +166,8 @@ QState Traffic::Started(Traffic * const me, QEvt const * const e) {
             me->PostSync(evt);
 
             // @todo Need to wait for response.
-            /*
             evt = new DispStopReq(ILI9341, GET_HSMN(), GEN_SEQ());
             Fw::Post(evt);
-            */
 
             evt = new TrafficStopCfm(req.GetFrom(), GET_HSMN(), req.GetSeq(), ERROR_SUCCESS);
             Fw::Post(evt);

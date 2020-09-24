@@ -55,6 +55,9 @@ TIM_HandleTypeDef Periph::m_tim2Hal;
 // These common peripherals are shared among different HW blocks and cannot be setup individually
 // USART1 - TX PB.6 DMA1 Channel 4 Request 2
 //          RX PB.7 DMA1 Channel 5 Request 2
+// Ili9341 SPI1 - SCK PA.5, MISO PA.6, MOSI PA.7, CS PA.2 D/CX PA.15
+//                TX DMA2 Channel 4 Request 4
+//                RX DMA2 Channel 3 Request 4
 // LED0 - PB.14 PWM TIM1 Channel 2
 // BUTTON - PC.13
 //
@@ -65,9 +68,11 @@ TIM_HandleTypeDef Periph::m_tim2Hal;
 #define TIM1_PWM_FREQ       (20000)             // 20kHz
 
 void Periph::SetupNormal() {
+    __GPIOA_CLK_ENABLE();
     __GPIOB_CLK_ENABLE();
     __GPIOC_CLK_ENABLE();
     __HAL_RCC_DMA1_CLK_ENABLE();
+    __HAL_RCC_DMA2_CLK_ENABLE();
     __HAL_RCC_TIM1_CLK_ENABLE();
 
     // Initialize TIM2 for PWM (shared by LED0...).
@@ -93,9 +98,11 @@ void Periph::SetupLowPower() {
 void Periph::Reset() {
     HAL_TIM_PWM_DeInit(&m_tim1Hal);
     __HAL_RCC_TIM1_CLK_DISABLE();
+    __HAL_RCC_DMA2_CLK_DISABLE();
     __HAL_RCC_DMA1_CLK_DISABLE();
     __GPIOC_CLK_DISABLE();
     __GPIOB_CLK_DISABLE();
+    __GPIOA_CLK_DISABLE();
     // TBD.
 }
 

@@ -85,20 +85,16 @@
 #include "System.h"
 #include "GpioInAct.h"
 #include "CompositeAct.h"
-#include "CompositeActInterface.h"
 #include "SimpleAct.h"
-#include "SimpleActInterface.h"
 #include "Demo.h"
+#include "Ili9341Thread.h"
 #include "GpioOutAct.h"
 #include "AOWashingMachine.h"
 #include "Traffic.h"
 #include "UartAct.h"
-#include "UartActInterface.h"
 #include "SystemInterface.h"
-#include "GpioInInterface.h"
 #include "ConsoleInterface.h"
 #include "ConsoleCmd.h"
-#include "SystemCmd.h"
 
 FW_DEFINE_THIS_FILE("main.cpp")
 
@@ -126,6 +122,7 @@ static AOWashingMachine washingMachine;
 static Traffic traffic;
 static GpioInAct gpioInAct;
 static UartAct uartAct1(UART1_ACT, "UART1_ACT", "UART1_IN", "UART1_OUT");
+static Ili9341Thread ili9341Thread;
 
 /* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
@@ -152,6 +149,7 @@ int main(void)
     Log::Off(CMD_INPUT_UART1);
     Log::Off(CMD_PARSER_UART1);
     Log::Off(CONSOLE_UART1);
+    Log::Off(ILI9341);
 
     // Start active objects.
     compositeAct.Start(PRIO_COMPOSITE_ACT);
@@ -163,6 +161,7 @@ int main(void)
     gpioInAct.Start(PRIO_GPIO_IN_ACT);
     uartAct1.Start(PRIO_UART1_ACT);
     consoleUart1.Start(PRIO_CONSOLE_UART1);
+    ili9341Thread.Start(PRIO_ILI9341);
     sys.Start(PRIO_SYSTEM);
 
     // Kick off the topmost active objects.

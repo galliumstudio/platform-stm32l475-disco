@@ -223,7 +223,7 @@ uint32_t &Console::Var(uint32_t index) {
 void Console::Banner() {
     PutStr("\n\r\n\r");
     PutStr("*******************************\n\r");
-    PutStr("*   Console STM32F401 Nucleo  *\n\r");
+    PutStr("*   Console STM32L475 Disco  *\n\r");
     PutStr("*******************************\n\r");
 }
 

@@ -39,7 +39,7 @@
 #include "app_hsmn.h"
 #include "fw_log.h"
 #include "fw_assert.h"
-//#include "DispInterface.h"
+#include "DispInterface.h"
 #include "LampInterface.h"
 #include "Lamp.h"
 
@@ -76,8 +76,6 @@ void Lamp::Draw(Hsmn hsmn, bool redOn, bool yellowOn, bool greenOn) {
         buf = "EW";
         xOffset = 120;
     }
-    // @todo Uncomment when Disp active object is integrated.
-    /*
     // Draw label text.
     Evt *evt = new DispDrawTextReq(ILI9341, hsmn, buf, xOffset, 50, COLOR24_BLACK, COLOR24_WHITE, 3);
     Fw::Post(evt);
@@ -90,7 +88,6 @@ void Lamp::Draw(Hsmn hsmn, bool redOn, bool yellowOn, bool greenOn) {
     // Draw red lamp.
     evt = new DispDrawRectReq(ILI9341, hsmn, xOffset, 210, 50, 50, greenOn ? COLOR24_GREEN : COLOR24_BLACK);
     Fw::Post(evt);
-    */
 }
 
 Lamp::Lamp(Hsmn hsmn, char const *name) :
@@ -221,4 +218,3 @@ QState Lamp::MyState(Lamp * const me, QEvt const * const e) {
 */
 
 } // namespace APP
-
