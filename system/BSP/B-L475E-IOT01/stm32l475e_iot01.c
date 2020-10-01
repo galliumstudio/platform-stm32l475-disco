@@ -549,6 +549,8 @@ static void I2Cx_Error(I2C_HandleTypeDef *i2c_handler, uint8_t Addr)
 *******************************************************************************/
 /******************************** LINK Sensors ********************************/
 
+// Gallium Disabled. Defined in SensorIo.cpp.
+#if 0
 /**
   * @brief  Initializes Sensors low level.
   * @retval None
@@ -643,6 +645,8 @@ void SENSOR_IO_Delay(uint32_t Delay)
 {
   HAL_Delay(Delay);
 }
+
+#endif
 
 /**
   * @}
