@@ -88,6 +88,7 @@
 #include "SimpleAct.h"
 #include "Demo.h"
 #include "Ili9341Thread.h"
+#include "SensorThread.h"
 #include "GpioOutAct.h"
 #include "AOWashingMachine.h"
 #include "Traffic.h"
@@ -123,6 +124,7 @@ static Traffic traffic;
 static GpioInAct gpioInAct;
 static UartAct uartAct1(UART1_ACT, "UART1_ACT", "UART1_IN", "UART1_OUT");
 static Ili9341Thread ili9341Thread;
+static SensorThread sensorThread;
 
 /* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
@@ -162,6 +164,7 @@ int main(void)
     uartAct1.Start(PRIO_UART1_ACT);
     consoleUart1.Start(PRIO_CONSOLE_UART1);
     ili9341Thread.Start(PRIO_ILI9341);
+    sensorThread.Start(PRIO_SENSOR);
     sys.Start(PRIO_SYSTEM);
 
     // Kick off the topmost active objects.

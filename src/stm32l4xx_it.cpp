@@ -75,6 +75,7 @@
 #include "UartAct.h"
 #include "Ili9341.h"
 #include "GpioIn.h"
+#include "Sensor.h"
 #include "fw_log.h"
 
 /* USER CODE BEGIN 0 */
@@ -152,7 +153,7 @@ void HandleUartIrq(Hsmn hsmn) {
 
 // UART1 TX DMA
 // Must be declared as extern "C" in header.
-extern "C" void DMA1_Channel4_IRQHandler(void) {
+extern "C" void DMA2_Channel6_IRQHandler(void) {
     QXK_ISR_ENTRY();
     UART_HandleTypeDef *hal = UartAct::GetHal(UART1_ACT);
     HAL_DMA_IRQHandler(hal->hdmatx);
@@ -161,7 +162,7 @@ extern "C" void DMA1_Channel4_IRQHandler(void) {
 
 // UART1 RX DMA
 // Must be declared as extern "C" in header.
-extern "C" void DMA1_Channel5_IRQHandler(void) {
+extern "C" void DMA2_Channel7_IRQHandler(void) {
     QXK_ISR_ENTRY();
     UART_HandleTypeDef *hal = UartAct::GetHal(UART1_ACT);
     HAL_DMA_IRQHandler(hal->hdmarx);
@@ -233,6 +234,33 @@ extern "C" void EXTI0_IRQHandler(void)
 
 void HAL_GPIO_EXTI_Callback(uint16_t pin) {
     GpioIn::GpioIntCallback(pin);
+}
+
+// Sensors.
+extern "C" void I2C2_EV_IRQHandler(void)
+{
+    QXK_ISR_ENTRY();
+    HAL_I2C_EV_IRQHandler(Sensor::GetHal());
+    QXK_ISR_EXIT();
+}
+
+extern "C" void I2C2_ER_IRQHandler(void)
+{
+    QXK_ISR_ENTRY();
+    HAL_I2C_ER_IRQHandler(Sensor::GetHal());
+    QXK_ISR_EXIT();
+}
+
+void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef *hal) {
+    if (hal == Sensor::GetHal()) {
+        Sensor::SignalI2cSem();
+    }
+}
+
+void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hal) {
+    if (hal == Sensor::GetHal()) {
+        Sensor::SignalI2cSem();
+    }
 }
 
 // ILI9341 LCD.

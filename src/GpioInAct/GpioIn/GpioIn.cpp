@@ -67,6 +67,10 @@ static char const * const interfaceEvtName[] = {
 // The order below must match that in app_hsmn.h.
 static char const * const hsmName[] = {
     "USER_BTN",
+    "ACCEL_GYRO_INT",
+    "MAG_DRDY",
+    "HUMID_TEMP_DRDY",
+    "PRESS_INT",
     // Add more regions here.
 };
 
@@ -117,6 +121,10 @@ Hsmn GpioIn::GetHsmn(uint16_t pin) {
 
 GpioIn::Config const GpioIn::CONFIG[] = {
     { USER_BTN,        GPIOC, GPIO_PIN_13, false },
+    { ACCEL_GYRO_INT,  GPIOD, GPIO_PIN_11, true },
+    { MAG_DRDY,        GPIOC, GPIO_PIN_8,  true },
+    { HUMID_TEMP_DRDY, GPIOD, GPIO_PIN_15, true },
+    { PRESS_INT,       GPIOD, GPIO_PIN_10, true },
 };
 
 void GpioIn::InitGpio() {
@@ -203,6 +211,7 @@ GpioIn::GpioIn() :
             break;
         }
     }
+    FW_ASSERT(i < ARRAY_COUNT(CONFIG));
     // Save hsmn to pin mapping.
     SavePin(GetHsm().GetHsmn(), m_config->pin);
     IncCurrHsmn();

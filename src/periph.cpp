@@ -53,11 +53,18 @@ TIM_HandleTypeDef Periph::m_tim2Hal;
 
 // Setup common peripherals for normal power mode.
 // These common peripherals are shared among different HW blocks and cannot be setup individually
-// USART1 - TX PB.6 DMA1 Channel 4 Request 2
-//          RX PB.7 DMA1 Channel 5 Request 2
+// USART1 - TX PB.6 DMA2 Channel 6 Request 2 (This avoids conflict with I2C2)
+//          RX PB.7 DMA2 Channel 7 Request 2 (This avoids conflict with I2C2)
 // Ili9341 SPI1 - SCK PA.5, MISO PA.6, MOSI PA.7, CS PA.2 D/CX PA.15
 //                TX DMA2 Channel 4 Request 4
 //                RX DMA2 Channel 3 Request 4
+// Sensor I2C2 - SCL PB.10, SDA PB.11
+//             - TX DMA1 Channel 4 Request 3 (not used)
+//             - RX DMA1 Channel 5 Request 3 (not used)
+// Sensor ACCEL GYRO INT - PD.11
+// Sensor MAG DRDY - PC.8
+// Sensor HUMID TEMP DRDY - PD.15
+// Sensor PRESS INT - PD.10
 // LED0 - PB.14 PWM TIM1 Channel 2
 // BUTTON - PC.13
 //
@@ -71,6 +78,7 @@ void Periph::SetupNormal() {
     __GPIOA_CLK_ENABLE();
     __GPIOB_CLK_ENABLE();
     __GPIOC_CLK_ENABLE();
+    __GPIOD_CLK_ENABLE();
     __HAL_RCC_DMA1_CLK_ENABLE();
     __HAL_RCC_DMA2_CLK_ENABLE();
     __HAL_RCC_TIM1_CLK_ENABLE();
@@ -100,6 +108,7 @@ void Periph::Reset() {
     __HAL_RCC_TIM1_CLK_DISABLE();
     __HAL_RCC_DMA2_CLK_DISABLE();
     __HAL_RCC_DMA1_CLK_DISABLE();
+    __GPIOD_CLK_DISABLE();
     __GPIOC_CLK_DISABLE();
     __GPIOB_CLK_DISABLE();
     __GPIOA_CLK_DISABLE();

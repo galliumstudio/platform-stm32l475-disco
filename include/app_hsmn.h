@@ -59,7 +59,7 @@ namespace APP {
     ADD_HSM(SENSOR_MAG, 1) \
     ADD_HSM(SENSOR_PRESS, 1) \
     ADD_HSM(GPIO_IN_ACT, 1) \
-    ADD_HSM(GPIO_IN, 1) \
+    ADD_HSM(GPIO_IN, 5) \
     ADD_HSM(DEMO, 1) \
     ADD_HSM(GPIO_OUT_ACT, 1) \
     ADD_HSM(GPIO_OUT, 1) \
@@ -81,6 +81,10 @@ namespace APP {
     ADD_ALIAS(UART1_OUT, UART_OUT) \
     ADD_ALIAS(ILI9341,   DISP) \
     ADD_ALIAS(USER_BTN,        GPIO_IN) \
+    ADD_ALIAS(ACCEL_GYRO_INT,  GPIO_IN+1) \
+    ADD_ALIAS(MAG_DRDY,        GPIO_IN+2) \
+    ADD_ALIAS(HUMID_TEMP_DRDY, GPIO_IN+3) \
+    ADD_ALIAS(PRESS_INT,       GPIO_IN+4) \
     ADD_ALIAS(USER_LED,        GPIO_OUT) \
     ADD_ALIAS(LAMP_NS, LAMP) \
     ADD_ALIAS(LAMP_EW, LAMP+1) \
@@ -105,6 +109,7 @@ enum {
 // The maximum priority is defined in qf_port.h as QF_MAX_ACTIVE (32)
 enum
 {
+    PRIO_SENSOR         = 31,
     PRIO_UART1_ACT      = 29,
     PRIO_CONSOLE_UART1  = 27,
     PRIO_SYSTEM         = 26,

@@ -121,8 +121,8 @@ extern "C" void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *hal) {
 // Define UART configurations.
 UartAct::Config const UartAct::CONFIG[] = {
     { UART1_ACT, USART1, USART1_IRQn, USART1_IRQ_PRIO,
-      GPIOB, GPIO_PIN_6, GPIO_AF7_USART1, DMA1_Channel4, DMA_REQUEST_2, DMA1_Channel4_IRQn, DMA1_CHANNEL4_PRIO,
-      GPIOB, GPIO_PIN_7, GPIO_AF7_USART1, DMA1_Channel5, DMA_REQUEST_2, DMA1_Channel5_IRQn, DMA1_CHANNEL5_PRIO },
+      GPIOB, GPIO_PIN_6, GPIO_AF7_USART1, DMA2_Channel6, DMA_REQUEST_2, DMA2_Channel6_IRQn, DMA2_CHANNEL6_PRIO,
+      GPIOB, GPIO_PIN_7, GPIO_AF7_USART1, DMA2_Channel7, DMA_REQUEST_2, DMA2_Channel7_IRQn, DMA2_CHANNEL7_PRIO },
     // Add more configurations here...
 };
 
