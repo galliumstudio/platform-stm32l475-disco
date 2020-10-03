@@ -49,6 +49,7 @@
 #include "GpioOutInterface.h"
 #include "AOWashingMachineInterface.h"
 #include "TrafficInterface.h"
+#include "LevelMeterInterface.h"
 #include "SensorInterface.h"
 #include "bsp.h"
 #include <vector>
@@ -56,8 +57,8 @@
 
 // Compile options to enable demo application.
 // Only one of the following can be enabled at a time.
-#define ENABLE_TRAFFIC
-//#define ENABLE_LEVEL_METER
+//#define ENABLE_TRAFFIC
+#define ENABLE_LEVEL_METER
 
 #if (defined(ENABLE_TRAFFIC) && defined(ENABLE_LEVEL_METER))
 #error ENABLE_TRAFFIC and ENABLE_LEVEL_METER cannot be both defined
@@ -332,13 +333,34 @@ QState System::Starting3(System * const me, QEvt const * const e) {
     switch (e->sig) {
         case Q_ENTRY_SIG: {
             EVENT(e);
-            // @todo Placeholder.
-            Evt *evt = new Evt(DONE, GET_HSMN());
+            Evt *evt;
+#ifdef ENABLE_LEVEL_METER
+            me->GetHsm().ResetOutSeq();
+            evt = new LevelMeterStartReq(LEVEL_METER, SYSTEM, GEN_SEQ());
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
+            return Q_HANDLED();
+#else
+            evt = new Evt(DONE, GET_HSMN());
             me->PostSync(evt);
             return Q_HANDLED();
+#endif
         }
         case Q_EXIT_SIG: {
             EVENT(e);
+            return Q_HANDLED();
+        }
+        case LEVEL_METER_START_CFM: {
+            EVENT(e);
+            ErrorEvt const &cfm = ERROR_EVT_CAST(*e);
+            bool allReceived;
+            if (!me->GetHsm().HandleCfmRsp(cfm, allReceived)) {
+                Evt *evt = new Failed(GET_HSMN(), cfm.GetError(), cfm.GetOrigin(), cfm.GetReason());
+                me->PostSync(evt);
+            } else if (allReceived) {
+                Evt *evt = new Evt(DONE, GET_HSMN());
+                me->PostSync(evt);
+            }
             return Q_HANDLED();
         }
     }
@@ -391,12 +413,27 @@ QState System::Stopping1(System * const me, QEvt const * const e) {
         case Q_ENTRY_SIG: {
             EVENT(e);
             me->GetHsm().ResetOutSeq();
-            Evt *evt = new Evt(NEXT, GET_HSMN());
-            me->PostSync(evt);
+
+            Evt *evt = new LevelMeterStopReq(LEVEL_METER, SYSTEM, GEN_SEQ());
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
             return Q_HANDLED();
         }
         case Q_EXIT_SIG: {
             EVENT(e);
+            return Q_HANDLED();
+        }
+        case LEVEL_METER_STOP_CFM: {
+            EVENT(e);
+            ErrorEvt const &cfm = ERROR_EVT_CAST(*e);
+            bool allReceived;
+            if (!me->GetHsm().HandleCfmRsp(cfm, allReceived)) {
+                Evt *evt = new Failed(GET_HSMN(), cfm.GetError(), cfm.GetOrigin(), cfm.GetReason());
+                me->PostSync(evt);
+            } else if (allReceived) {
+                Evt *evt = new Evt(NEXT, GET_HSMN());
+                me->PostSync(evt);
+            }
             return Q_HANDLED();
         }
         case NEXT: {

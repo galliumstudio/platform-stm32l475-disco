@@ -36,15 +36,14 @@
  * Email - admin@galliumstudio.com
  ******************************************************************************/
 
-#ifndef SENSOR_ACCEL_GYRO_H
-#define SENSOR_ACCEL_GYRO_H
+#ifndef LEVEL_METER_H
+#define LEVEL_METER_H
 
 #include "qpcpp.h"
-#include "fw_region.h"
+#include "fw_active.h"
 #include "fw_timer.h"
 #include "fw_evt.h"
 #include "app_hsmn.h"
-#include "SensorAccelGyro.h"
 #include "SensorAccelGyroInterface.h"
 
 using namespace QP;
@@ -52,50 +51,54 @@ using namespace FW;
 
 namespace APP {
 
-class SensorAccelGyro : public Region {
+class LevelMeter : public Active {
 public:
-    SensorAccelGyro(Hsmn intHsmn, I2C_HandleTypeDef &hal);
+    LevelMeter();
 
 protected:
-    static QState InitialPseudoState(SensorAccelGyro * const me, QEvt const * const e);
-    static QState Root(SensorAccelGyro * const me, QEvt const * const e);
-        static QState Stopped(SensorAccelGyro * const me, QEvt const * const e);
-        static QState Starting(SensorAccelGyro * const me, QEvt const * const e);
-        static QState Stopping(SensorAccelGyro * const me, QEvt const * const e);
-        static QState Started(SensorAccelGyro * const me, QEvt const * const e);
-            static QState Off(SensorAccelGyro * const me, QEvt const * const e);
-            static QState On(SensorAccelGyro * const me, QEvt const * const e);
-
-    Hsmn m_intHsmn;
-    I2C_HandleTypeDef &m_hal;
-    void *m_handle;               // Handle to Nucleo IKS01A1 BSP.
-    AccelGyroPipe *m_pipe;        // Pipe to save accel/gyro reports/samples.
+    static QState InitialPseudoState(LevelMeter * const me, QEvt const * const e);
+    static QState Root(LevelMeter * const me, QEvt const * const e);
+        static QState Stopped(LevelMeter * const me, QEvt const * const e);
+        static QState Starting(LevelMeter * const me, QEvt const * const e);
+        static QState Stopping(LevelMeter * const me, QEvt const * const e);
+        static QState Started(LevelMeter * const me, QEvt const * const e);
+            static QState Normal(LevelMeter * const me, QEvt const * const e);
+            static QState Redrawing(LevelMeter * const me, QEvt const * const e);
 
     enum {
-        POLL_TIMEOUT_MS = 1000,
+        ACCEL_GYRO_PIPE_ORDER = 7,
     };
+    AccelGyroReport m_accelGyroStor[1 << ACCEL_GYRO_PIPE_ORDER];
+    AccelGyroPipe m_accelGyroPipe;
+    AccelGyroReport m_avgReport;
+
+    enum {
+        REPORT_TIMEOUT_MS = 333
+    };
+
     Timer m_stateTimer;
+    Timer m_reportTimer;
 
-#define SENSOR_ACCEL_GYRO_TIMER_EVT \
+#define LEVEL_METER_TIMER_EVT \
     ADD_EVT(STATE_TIMER) \
+    ADD_EVT(REPORT_TIMER)
 
-#define SENSOR_ACCEL_GYRO_INTERNAL_EVT \
+#define LEVEL_METER_INTERNAL_EVT \
     ADD_EVT(DONE) \
     ADD_EVT(FAILED) \
-    ADD_EVT(TURNED_ON) \
-    ADD_EVT(TURNED_OFF)
+    ADD_EVT(REDRAW)
 
 #undef ADD_EVT
 #define ADD_EVT(e_) e_,
 
     enum {
-        SENSOR_ACCEL_GYRO_TIMER_EVT_START = TIMER_EVT_START(SENSOR_ACCEL_GYRO),
-        SENSOR_ACCEL_GYRO_TIMER_EVT
+        LEVEL_METER_TIMER_EVT_START = TIMER_EVT_START(LEVEL_METER),
+        LEVEL_METER_TIMER_EVT
     };
 
     enum {
-        SENSOR_ACCEL_GYRO_INTERNAL_EVT_START = INTERNAL_EVT_START(SENSOR_ACCEL_GYRO),
-        SENSOR_ACCEL_GYRO_INTERNAL_EVT
+        LEVEL_METER_INTERNAL_EVT_START = INTERNAL_EVT_START(LEVEL_METER),
+        LEVEL_METER_INTERNAL_EVT
     };
 
     class Failed : public ErrorEvt {
@@ -107,4 +110,4 @@ protected:
 
 } // namespace APP
 
-#endif // SENSOR_ACCEL_GYRO_H
+#endif // LEVEL_METER_H

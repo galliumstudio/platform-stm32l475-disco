@@ -92,6 +92,7 @@
 #include "GpioOutAct.h"
 #include "AOWashingMachine.h"
 #include "Traffic.h"
+#include "LevelMeter.h"
 #include "UartAct.h"
 #include "SystemInterface.h"
 #include "ConsoleInterface.h"
@@ -121,6 +122,7 @@ static Demo demo;
 static GpioOutAct gpioOutAct;
 static AOWashingMachine washingMachine;
 static Traffic traffic;
+static LevelMeter levelMeter;
 static GpioInAct gpioInAct;
 static UartAct uartAct1(UART1_ACT, "UART1_ACT", "UART1_IN", "UART1_OUT");
 static Ili9341Thread ili9341Thread;
@@ -152,6 +154,9 @@ int main(void)
     Log::Off(CMD_PARSER_UART1);
     Log::Off(CONSOLE_UART1);
     Log::Off(ILI9341);
+    Log::Off(SENSOR_ACCEL_GYRO);
+    Log::Off(ACCEL_GYRO_INT);
+    Log::Off(LEVEL_METER);
 
     // Start active objects.
     compositeAct.Start(PRIO_COMPOSITE_ACT);
@@ -160,6 +165,7 @@ int main(void)
     gpioOutAct.Start(PRIO_GPIO_OUT_ACT);
     washingMachine.Start(PRIO_AO_WASHING_MACHINE);
     traffic.Start(PRIO_TRAFFIC);
+    levelMeter.Start(PRIO_LEVEL_METER);
     gpioInAct.Start(PRIO_GPIO_IN_ACT);
     uartAct1.Start(PRIO_UART1_ACT);
     consoleUart1.Start(PRIO_CONSOLE_UART1);

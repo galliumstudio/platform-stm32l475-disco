@@ -36,75 +36,68 @@
  * Email - admin@galliumstudio.com
  ******************************************************************************/
 
-#ifndef SENSOR_ACCEL_GYRO_H
-#define SENSOR_ACCEL_GYRO_H
+#ifndef LEVEL_METER_INTERFACE_H
+#define LEVEL_METER_INTERFACE_H
 
-#include "qpcpp.h"
-#include "fw_region.h"
-#include "fw_timer.h"
+#include "fw_def.h"
 #include "fw_evt.h"
 #include "app_hsmn.h"
-#include "SensorAccelGyro.h"
-#include "SensorAccelGyroInterface.h"
 
 using namespace QP;
 using namespace FW;
 
 namespace APP {
 
-class SensorAccelGyro : public Region {
-public:
-    SensorAccelGyro(Hsmn intHsmn, I2C_HandleTypeDef &hal);
-
-protected:
-    static QState InitialPseudoState(SensorAccelGyro * const me, QEvt const * const e);
-    static QState Root(SensorAccelGyro * const me, QEvt const * const e);
-        static QState Stopped(SensorAccelGyro * const me, QEvt const * const e);
-        static QState Starting(SensorAccelGyro * const me, QEvt const * const e);
-        static QState Stopping(SensorAccelGyro * const me, QEvt const * const e);
-        static QState Started(SensorAccelGyro * const me, QEvt const * const e);
-            static QState Off(SensorAccelGyro * const me, QEvt const * const e);
-            static QState On(SensorAccelGyro * const me, QEvt const * const e);
-
-    Hsmn m_intHsmn;
-    I2C_HandleTypeDef &m_hal;
-    void *m_handle;               // Handle to Nucleo IKS01A1 BSP.
-    AccelGyroPipe *m_pipe;        // Pipe to save accel/gyro reports/samples.
-
-    enum {
-        POLL_TIMEOUT_MS = 1000,
-    };
-    Timer m_stateTimer;
-
-#define SENSOR_ACCEL_GYRO_TIMER_EVT \
-    ADD_EVT(STATE_TIMER) \
-
-#define SENSOR_ACCEL_GYRO_INTERNAL_EVT \
-    ADD_EVT(DONE) \
-    ADD_EVT(FAILED) \
-    ADD_EVT(TURNED_ON) \
-    ADD_EVT(TURNED_OFF)
+#define LEVEL_METER_INTERFACE_EVT \
+    ADD_EVT(LEVEL_METER_START_REQ) \
+    ADD_EVT(LEVEL_METER_START_CFM) \
+    ADD_EVT(LEVEL_METER_STOP_REQ) \
+    ADD_EVT(LEVEL_METER_STOP_CFM)
 
 #undef ADD_EVT
 #define ADD_EVT(e_) e_,
 
-    enum {
-        SENSOR_ACCEL_GYRO_TIMER_EVT_START = TIMER_EVT_START(SENSOR_ACCEL_GYRO),
-        SENSOR_ACCEL_GYRO_TIMER_EVT
-    };
+enum {
+    LEVEL_METER_INTERFACE_EVT_START = INTERFACE_EVT_START(LEVEL_METER),
+    LEVEL_METER_INTERFACE_EVT
+};
 
-    enum {
-        SENSOR_ACCEL_GYRO_INTERNAL_EVT_START = INTERNAL_EVT_START(SENSOR_ACCEL_GYRO),
-        SENSOR_ACCEL_GYRO_INTERNAL_EVT
-    };
+enum {
+    LEVEL_METER_REASON_UNSPEC = 0,
+};
 
-    class Failed : public ErrorEvt {
-    public:
-        Failed(Hsmn hsmn, Error error, Hsmn origin, Reason reason) :
-            ErrorEvt(FAILED, hsmn, hsmn, 0, error, origin, reason) {}
+class LevelMeterStartReq : public Evt {
+public:
+    enum {
+        TIMEOUT_MS = 400
     };
+    LevelMeterStartReq(Hsmn to, Hsmn from, Sequence seq) :
+        Evt(LEVEL_METER_START_REQ, to, from, seq) {}
+};
+
+class LevelMeterStartCfm : public ErrorEvt {
+public:
+    LevelMeterStartCfm(Hsmn to, Hsmn from, Sequence seq,
+                   Error error, Hsmn origin = HSM_UNDEF, Reason reason = 0) :
+        ErrorEvt(LEVEL_METER_START_CFM, to, from, seq, error, origin, reason) {}
+};
+
+class LevelMeterStopReq : public Evt {
+public:
+    enum {
+        TIMEOUT_MS = 400
+    };
+    LevelMeterStopReq(Hsmn to, Hsmn from, Sequence seq) :
+        Evt(LEVEL_METER_STOP_REQ, to, from, seq) {}
+};
+
+class LevelMeterStopCfm : public ErrorEvt {
+public:
+    LevelMeterStopCfm(Hsmn to, Hsmn from, Sequence seq,
+                   Error error, Hsmn origin = HSM_UNDEF, Reason reason = 0) :
+        ErrorEvt(LEVEL_METER_STOP_CFM, to, from, seq, error, origin, reason) {}
 };
 
 } // namespace APP
 
-#endif // SENSOR_ACCEL_GYRO_H
+#endif // LEVEL_METER_INTERFACE_H

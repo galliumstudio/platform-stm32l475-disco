@@ -70,7 +70,7 @@ static char const * const interfaceEvtName[] = {
 SensorAccelGyro::SensorAccelGyro(Hsmn intHsmn, I2C_HandleTypeDef &hal) :
     Region((QStateHandler)&SensorAccelGyro::InitialPseudoState, SENSOR_ACCEL_GYRO, "SENSOR_ACCEL_GYRO"),
     m_intHsmn(intHsmn), m_hal(hal), m_handle(NULL), m_pipe(NULL),
-    m_stateTimer(GetHsmn(), STATE_TIMER), m_pollTimer(GetHsmn(), POLL_TIMER) {
+    m_stateTimer(GetHsmn(), STATE_TIMER) {
     SET_EVT_NAME(SENSOR_ACCEL_GYRO);
 }
 
@@ -170,15 +170,10 @@ QState SensorAccelGyro::Starting(SensorAccelGyro * const me, QEvt const * const 
             me->GetHsm().ResetOutSeq();
             // Disable debouncing to ensure we get the active indication even if the GpioIn region misses the deactive trigger.
             // If debouncing is enabled, the GpioIn region won't send the active indication if it hasn't detected the deactive
-            // pin level. It will cause this region to stall (deadlock)
-
-            // @todo Disabes GPIO for now until INT is enabled. For test, sends Done immediately.
+            // pin level. It will cause this region to stall (deadlock).
             Evt *evt = new GpioInStartReq(me->m_intHsmn, GET_HSMN(), GEN_SEQ(), false);
             me->GetHsm().SaveOutSeq(*evt);
             Fw::Post(evt);
-            //Evt *evt = new Evt(DONE, GET_HSMN());
-            //me->PostSync(evt);
-
             return Q_HANDLED();
         }
         case Q_EXIT_SIG: {
@@ -285,58 +280,17 @@ QState SensorAccelGyro::Started(SensorAccelGyro * const me, QEvt const * const e
             EVENT(e);
             ACCELERO_StatusTypeDef status = BSP_ACCELERO_Init();
             FW_ASSERT(status == ACCELERO_OK);
-
-            // Test only. Uses poll timer before interrupt works.
-            //me->m_pollTimer.Start(POLL_TIMEOUT_MS, Timer::PERIODIC);
-            // Enable DRDY Interrupt.
-            uint8_t tmp = SENSOR_IO_Read(LSM6DSL_ACC_GYRO_I2C_ADDRESS_LOW, LSM6DSL_ACC_GYRO_INT1_CTRL);
-            LOG("INT1_CTRL = 0x%x", tmp);
-            SENSOR_IO_Write(LSM6DSL_ACC_GYRO_I2C_ADDRESS_LOW, LSM6DSL_ACC_GYRO_INT1_CTRL, tmp | 0x01);
             Evt *evt = new Evt(GPIO_IN_ACTIVE_IND, GET_HSMN(), GET_HSMN());
             Fw::Post(evt);
-
             return Q_HANDLED();
         }
         case Q_EXIT_SIG: {
             EVENT(e);
             BSP_ACCELERO_DeInit();
-
-            // Test only.
-            me->m_pollTimer.Stop();
             return Q_HANDLED();
         }
         case Q_INIT_SIG: {
             return Q_TRAN(&SensorAccelGyro::Off);
-        }
-        // Test only.
-        case POLL_TIMER: {
-            //EVENT(e);
-            int16_t data[3];
-            BSP_ACCELERO_AccGetXYZ(data);
-            LOG("Accel data = %d %d %d", data[0], data[1], data[2]);
-            return Q_HANDLED();
-        }
-        // Test only
-        case GPIO_IN_ACTIVE_IND: {
-            //EVENT(e);
-            /*
-            SensorAxes_t accData;
-            DrvStatusTypeDef status = BSP_ACCELERO_Get_Axes(me->m_handle, &accData);
-            FW_ASSERT(status == COMPONENT_OK);
-            INFO("%d %d %d", accData.AXIS_X, accData.AXIS_Y, accData.AXIS_Z);
-            // @TODO - Perform any unit conversion. Currently just return raw values.
-            //         Gyro data are not filled in, left as default 0.
-            AccelGyroReport report(accData.AXIS_X, accData.AXIS_Y, accData.AXIS_Z);
-            uint32_t count = me->m_pipe->Write(&report, 1);
-            if (count != 1) {
-                WARNING("Pipe full");
-            }
-            */
-            // Test only
-            int16_t data[3];
-            BSP_ACCELERO_AccGetXYZ(data);
-            LOG("Accel data = %d %d %d", data[0], data[1], data[2]);
-            return Q_HANDLED();
         }
     }
     return Q_SUPER(&SensorAccelGyro::Root);
@@ -362,20 +316,17 @@ QState SensorAccelGyro::Off(SensorAccelGyro * const me, QEvt const * const e) {
                     error = ERROR_PARAM;
                     break;
                 }
+                // @todo Enable sensor. Currently it is enabled at init.
                 /*
                 DrvStatusTypeDef status = BSP_ACCELERO_Sensor_Enable(me->m_handle);
                 if (status != COMPONENT_OK) {
                     ERROR("BSP_ACCELERO_Sensor_Enable failed (%d)", status);
                     break;
                 }
-                //status_t result = LSM6DS0_ACC_GYRO_W_XL_DataReadyOnINT(me->m_handle, LSM6DS0_ACC_GYRO_INT_DRDY_XL_ENABLE);
-                status_t result = LSM6DSL_ACC_GYRO_W_DRDY_XL_on_INT1(me->m_handle, LSM6DSL_ACC_GYRO_INT1_DRDY_XL_ENABLED);
-                if (result != MEMS_SUCCESS) {
-                    ERROR("LSM6DS0_ACC_GYRO_W_XL_DataReadyOnINT failed (%d)", result);
-                    BSP_ACCELERO_Sensor_Disable(me->m_handle);
-                    break;
-                }
                 */
+                // Enables DRDY Interrupt.
+                uint8_t tmp = SENSOR_IO_Read(LSM6DSL_ACC_GYRO_I2C_ADDRESS_LOW, LSM6DSL_ACC_GYRO_INT1_CTRL);
+                SENSOR_IO_Write(LSM6DSL_ACC_GYRO_I2C_ADDRESS_LOW, LSM6DSL_ACC_GYRO_INT1_CTRL, tmp | 0x01);
                 success = true;
             } while(0);
             if (success) {
@@ -416,10 +367,11 @@ QState SensorAccelGyro::On(SensorAccelGyro * const me, QEvt const * const e) {
         case SENSOR_ACCEL_GYRO_OFF_REQ: {
             SensorAccelGyroOffReq const &req = static_cast<SensorAccelGyroOffReq const &>(*e);
             me->m_pipe = NULL;
+            // Disables DRDY Interrupt.
+            uint8_t tmp = SENSOR_IO_Read(LSM6DSL_ACC_GYRO_I2C_ADDRESS_LOW, LSM6DSL_ACC_GYRO_INT1_CTRL);
+            SENSOR_IO_Write(LSM6DSL_ACC_GYRO_I2C_ADDRESS_LOW, LSM6DSL_ACC_GYRO_INT1_CTRL, tmp & ~0x01);
+            // @todo Disable sensor. Currently it is always enabled after init.
             /*
-            //status_t result = LSM6DS0_ACC_GYRO_W_XL_DataReadyOnINT(me->m_handle, LSM6DS0_ACC_GYRO_INT_DRDY_XL_DISABLE);
-            status_t result = LSM6DSL_ACC_GYRO_W_DRDY_XL_on_INT1(me->m_handle, LSM6DSL_ACC_GYRO_INT1_DRDY_XL_DISABLED);
-            FW_ASSERT(result == MEMS_SUCCESS);
             DrvStatusTypeDef status = BSP_ACCELERO_Sensor_Disable(me->m_handle);
             FW_ASSERT(status == COMPONENT_OK);
             */
@@ -431,22 +383,16 @@ QState SensorAccelGyro::On(SensorAccelGyro * const me, QEvt const * const e) {
         }
         case GPIO_IN_ACTIVE_IND: {
             //EVENT(e);
-            /*
-            SensorAxes_t accData;
-            DrvStatusTypeDef status = BSP_ACCELERO_Get_Axes(me->m_handle, &accData);
-            FW_ASSERT(status == COMPONENT_OK);
-            INFO("%d %d %d", accData.AXIS_X, accData.AXIS_Y, accData.AXIS_Z);
+            int16_t data[3];
+            BSP_ACCELERO_AccGetXYZ(data);
+            LOG("Accel data = %d %d %d", data[0], data[1], data[2]);
             // @TODO - Perform any unit conversion. Currently just return raw values.
             //         Gyro data are not filled in, left as default 0.
-            AccelGyroReport report(accData.AXIS_X, accData.AXIS_Y, accData.AXIS_Z);
+            AccelGyroReport report(data[0], data[1], data[2]);
             uint32_t count = me->m_pipe->Write(&report, 1);
             if (count != 1) {
                 WARNING("Pipe full");
             }
-            */
-            // Test only
-            int16_t data[3];
-            BSP_ACCELERO_AccGetXYZ(data);
             return Q_HANDLED();
         }
         case GPIO_IN_INACTIVE_IND: {
