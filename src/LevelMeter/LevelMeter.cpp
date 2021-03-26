@@ -44,6 +44,7 @@
 #include "SensorInterface.h"
 //#include "WifiInterface.h"
 #include "LevelMeterInterface.h"
+#include "SensorMsgInterface.h"
 #include "LevelMeter.h"
 
 FW_DEFINE_THIS_FILE("LevelMeter.cpp")
@@ -71,6 +72,7 @@ static char const * const interfaceEvtName[] = {
 LevelMeter::LevelMeter() :
     Active((QStateHandler)&LevelMeter::InitialPseudoState, LEVEL_METER, "LEVEL_METER"),
     m_accelGyroPipe(m_accelGyroStor, ACCEL_GYRO_PIPE_ORDER),
+    m_pitch(0), m_roll(0), m_pitchThres(90), m_rollThres(90),
     m_stateTimer(GetHsm().GetHsmn(), STATE_TIMER),
     m_reportTimer(GetHsm().GetHsmn(), REPORT_TIMER) {
     SET_EVT_NAME(LEVEL_METER);
@@ -103,8 +105,7 @@ QState LevelMeter::Root(LevelMeter * const me, QEvt const * const e) {
         }
         case LEVEL_METER_STOP_REQ: {
             EVENT(e);
-            Evt const &req = EVT_CAST(*e);
-            me->GetHsm().SaveInSeq(req);
+            me->GetHsm().Defer(e);
             return Q_TRAN(&LevelMeter::Stopping);
         }
     }
@@ -158,7 +159,6 @@ QState LevelMeter::Starting(LevelMeter * const me, QEvt const * const e) {
         case Q_EXIT_SIG: {
             EVENT(e);
             me->m_stateTimer.Stop();
-            me->GetHsm().ClearInSeq();
             return Q_HANDLED();
         }
         case DISP_START_CFM:
@@ -187,12 +187,14 @@ QState LevelMeter::Starting(LevelMeter * const me, QEvt const * const e) {
                 evt = new LevelMeterStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_TIMEOUT, GET_HSMN());
             }
             Fw::Post(evt);
+            me->GetHsm().ClearInSeq();
             return Q_TRAN(&LevelMeter::Stopping);
         }
         case DONE: {
             EVENT(e);
             Evt *evt = new LevelMeterStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_SUCCESS);
             Fw::Post(evt);
+            me->GetHsm().ClearInSeq();
             return Q_TRAN(&LevelMeter::Started);
         }
     }
@@ -219,7 +221,6 @@ QState LevelMeter::Stopping(LevelMeter * const me, QEvt const * const e) {
         case Q_EXIT_SIG: {
             EVENT(e);
             me->m_stateTimer.Stop();
-            me->GetHsm().ClearInSeq();
             me->GetHsm().Recall();
             return Q_HANDLED();
         }
@@ -251,8 +252,6 @@ QState LevelMeter::Stopping(LevelMeter * const me, QEvt const * const e) {
         }
         case DONE: {
             EVENT(e);
-            Evt *evt = new LevelMeterStopCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_SUCCESS);
-            Fw::Post(evt);
             return Q_TRAN(&LevelMeter::Stopped);
         }
     }
@@ -295,15 +294,54 @@ QState LevelMeter::Started(LevelMeter * const me, QEvt const * const e) {
                 me->m_avgReport.m_aZ /= count;
             }
             LOG("(count = %d) %d, %d, %d", count, me->m_avgReport.m_aX, me->m_avgReport.m_aY, me->m_avgReport.m_aZ);
+
+            const float PI = 3.14159265;
+            float x = me->m_avgReport.m_aX;
+            float y = me->m_avgReport.m_aY;
+            float z = me->m_avgReport.m_aZ;
+            me->m_pitch = atan(x/sqrt((y*y) + (z*z))) * 180/PI;
+            me->m_roll  = atan(y/sqrt((x*x) + (z*z))) * 180/PI;
+            // Alternative methods.
+            /*
+            const float G = 1000;
+            if (x > 0) {
+                x = LESS(x, G);
+            } else {
+                x = GREATER(x, -G);
+            }
+            if (y > 0) {
+                y = LESS(y, G);
+            } else {
+                y = GREATER(y, -G);
+            }
+            me->m_pitch = asin(x/G) * 180/PI;
+            me->m_roll = asin(y/G) * 180/PI;
+            */
+            //PRINT("pitch=%06.2f, roll=%06.2f\n\r", pitch, roll);
+
             Evt *evt = new Evt(REDRAW, GET_HSMN());
             me->PostSync(evt);
-            // @todo Send to server.
+            // Obsolete way.
             /*
             char buf[50];
             snprintf(buf, sizeof(buf), "%d %d %d\n\r", (int)me->m_avgReport.m_aX, (int)me->m_avgReport.m_aY, (int)me->m_avgReport.m_aZ);
             evt = new WifiSendReq(WIFI_ST, GET_HSMN(), 0, buf);
             Fw::Post(evt);
             */
+
+            // @todo Currently when the destination (to) of a msg is undefined, the server sends to all nodes.
+            //       This will be changed to pub-sub in the future.
+            // @todo The source (from) of a msg is to be added by Node before it is sent. May remove from ctor.
+            SensorDataIndMsg indMsg(MSG_UNDEF, MSG_UNDEF, 0, me->m_pitch, me->m_roll);
+            Fw::Post(new LevelMeterDataInd(NODE, GET_HSMN(), indMsg));
+            return Q_HANDLED();
+        }
+        case LEVEL_METER_CONTROL_REQ: {
+            auto const &req = static_cast<LevelMeterControlReq const &>(*e);
+            me->m_pitchThres = req.GetPitchThres();
+            me->m_rollThres = req.GetRollThres();
+            Evt *evt = new Evt(REDRAW, GET_HSMN());
+            me->PostSync(evt);
             return Q_HANDLED();
         }
     }
@@ -335,51 +373,20 @@ QState LevelMeter::Redrawing(LevelMeter * const me, QEvt const * const e) {
             Evt *evt = new DispDrawBeginReq(ILI9341, GET_HSMN(), GEN_SEQ());
             Fw::Post(evt);
             char buf[30];
-            volatile const float PI = 3.14159265;
-            volatile const float G = 1000;
-            volatile float x = me->m_avgReport.m_aX;
-            volatile float y = me->m_avgReport.m_aY;
-            volatile float z = me->m_avgReport.m_aZ;
-            /*
-            float pitch = atan(y/sqrt((x*x) + (z*z))) * 180/PI;
-            float roll  = atan(x/sqrt((y*y) + (z*z))) * 180/PI;
-            */
-            volatile float pitch = atan(x/sqrt((y*y) + (z*z))) * 180/PI;
-            volatile float roll  = atan(y/sqrt((x*x) + (z*z))) * 180/PI;
-            //PRINT("%f %f %f\n\r", x, y, z);
-            //PRINT("pitch=%06.2f, roll=%06.2f\n\r", pitch, roll);
-            snprintf(buf, sizeof(buf), "P= %06.2f", pitch);
+            snprintf(buf, sizeof(buf), "P= %06.2f", me->m_pitch);
             evt = new DispDrawTextReq(ILI9341, GET_HSMN(), buf, 10, 30, COLOR24_RED, COLOR24_WHITE, 4);
             Fw::Post(evt);
-            snprintf(buf, sizeof(buf), "R= %06.2f", roll);
+            snprintf(buf, sizeof(buf), "R= %06.2f", me->m_roll);
             evt = new DispDrawTextReq(ILI9341, GET_HSMN(), buf, 10, 90, COLOR24_BLUE, COLOR24_WHITE, 4);
             Fw::Post(evt);
 
-            // Alternative methods.
-            //PRINT("(2) %f %f %f %f %f %f %f\n\r", x, y, x/G, y/G, asin(x/G), asin(y/G), asin(1.007000));
-            if (x > 0) {
-                x = LESS(x, G);
-            } else {
-                x = GREATER(x, -G);
-            }
-            if (y > 0) {
-                y = LESS(y, G);
-            } else {
-                y = GREATER(y, -G);
-            }
-            /*
-            pitch = asin(y/G) * 180/PI;
-            roll = asin(x/G) * 180/PI;
-            */
-            pitch = asin(x/G) * 180/PI;
-            roll = asin(y/G) * 180/PI;
-            //PRINT("(2) pitch=%06.2f, roll=%06.2f\n\r", pitch, roll);
-            snprintf(buf, sizeof(buf), "P= %06.2f", pitch);
-            evt = new DispDrawTextReq(ILI9341, GET_HSMN(), buf, 10, 150, COLOR24_RED, COLOR24_WHITE,4);
+            snprintf(buf, sizeof(buf), "PT= %05.2f", me->m_pitchThres);
+            evt = new DispDrawTextReq(ILI9341, GET_HSMN(), buf, 10, 150, COLOR24_BLACK, COLOR24_WHITE,4);
             Fw::Post(evt);
-            snprintf(buf, sizeof(buf), "R= %06.2f", roll);
-            evt = new DispDrawTextReq(ILI9341, GET_HSMN(), buf, 10, 210, COLOR24_BLUE, COLOR24_WHITE,4);
+            snprintf(buf, sizeof(buf), "RT= %05.2f", me->m_rollThres);
+            evt = new DispDrawTextReq(ILI9341, GET_HSMN(), buf, 10, 210, COLOR24_BLACK, COLOR24_WHITE,4);
             Fw::Post(evt);
+
             evt = new DispDrawEndReq(ILI9341, GET_HSMN(), GEN_SEQ());
             Fw::Post(evt);
             return Q_HANDLED();

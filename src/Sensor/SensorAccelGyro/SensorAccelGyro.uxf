@@ -28,7 +28,7 @@ fontfamily=Monospaced //possible: SansSerif,Serif,Monospaced
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>12</x>
+      <x>0</x>
       <y>0</y>
       <w>1452</w>
       <h>1296</h>
@@ -46,7 +46,7 @@ valign=top
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>564</x>
+      <x>552</x>
       <y>84</y>
       <w>336</w>
       <h>132</h>
@@ -63,7 +63,7 @@ valign=top
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>84</x>
+      <x>72</x>
       <y>720</y>
       <w>1296</w>
       <h>516</h>
@@ -80,7 +80,7 @@ valign=top
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>924</x>
+      <x>912</x>
       <y>348</y>
       <w>456</w>
       <h>264</h>
@@ -89,7 +89,7 @@ valign=top
 --
 entry/ start stateTimer, ResetOutSeq(),
        ^GPIO_IN_STOP_REQ, SaveOutSeq()
-exit/ stop stateTimer, ClearInSeq(), recall
+exit/ stop stateTimer, recall
 
 SENSOR_ACCEL_GYRO_STOP_REQ/ defer
 
@@ -104,7 +104,7 @@ valign=top
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>84</x>
+      <x>72</x>
       <y>348</y>
       <w>456</w>
       <h>264</h>
@@ -113,7 +113,7 @@ valign=top
 --
 entry/ start stateTimer, ResetOutSeq(),
        ^GPIO_IN_START_REQ, SaveOutSeq()
-exit/ stop stateTimer, ClearInSeq()
+exit/ stop stateTimer
 
 GPIO_IN_START_CFM
 / if (!HandleCfmRsp()) ^^FAILED(error)
@@ -126,7 +126,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>276</x>
+      <x>264</x>
       <y>144</y>
       <w>312</w>
       <h>228</h>
@@ -137,7 +137,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>528</x>
+      <x>516</x>
       <y>468</y>
       <w>420</w>
       <h>36</h>
@@ -148,7 +148,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>276</x>
+      <x>264</x>
       <y>600</y>
       <w>36</w>
       <h>144</h>
@@ -159,7 +159,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>600</x>
+      <x>588</x>
       <y>36</y>
       <w>156</w>
       <h>72</h>
@@ -170,7 +170,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>888</x>
+      <x>876</x>
       <y>144</y>
       <w>288</w>
       <h>228</h>
@@ -181,7 +181,7 @@ valign=top
   <element>
     <id>UMLSpecialState</id>
     <coordinates>
-      <x>960</x>
+      <x>948</x>
       <y>240</y>
       <w>24</w>
       <h>24</h>
@@ -192,7 +192,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>960</x>
+      <x>948</x>
       <y>252</y>
       <w>36</w>
       <h>120</h>
@@ -203,7 +203,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1140</x>
+      <x>1128</x>
       <y>600</y>
       <w>348</w>
       <h>108</h>
@@ -214,7 +214,7 @@ valign=top
   <element>
     <id>Text</id>
     <coordinates>
-      <x>288</x>
+      <x>276</x>
       <y>228</y>
       <w>300</w>
       <h>60</h>
@@ -226,32 +226,33 @@ style=wordwrap</panel_attributes>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>576</x>
-      <y>432</y>
+      <x>564</x>
+      <y>420</y>
       <w>324</w>
       <h>60</h>
     </coordinates>
     <panel_attributes>FAILED, STATE_TIMER
-/ ^SENSOR_ACCEL_GYRO_START_CFM(error)
+/ ^SENSOR_ACCEL_GYRO_START_CFM(error),
+  ClearInSeq()
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>1152</x>
+      <x>1140</x>
       <y>228</y>
       <w>300</w>
       <h>36</h>
     </coordinates>
-    <panel_attributes>DONE/ ^SENSOR_ACCEL_GYRO_STOP_CFM(SUCCESS)
+    <panel_attributes>DONE
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>804</x>
+      <x>792</x>
       <y>288</y>
       <w>192</w>
       <h>36</h>
@@ -263,31 +264,32 @@ style=wordwrap</panel_attributes>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>288</x>
+      <x>276</x>
       <y>648</y>
-      <w>324</w>
-      <h>48</h>
+      <w>372</w>
+      <h>60</h>
     </coordinates>
-    <panel_attributes>DONE/ ^SENSOR_ACCEL_GYRO_START_CFM(SUCCESS)
+    <panel_attributes>DONE/ ^SENSOR_ACCEL_GYRO_START_CFM(SUCCESS),
+      ClearInSeq()
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>876</x>
+      <x>864</x>
       <y>648</y>
       <w>288</w>
       <h>36</h>
     </coordinates>
-    <panel_attributes>SENSOR_ACCEL_GYRO_STOP_REQ /SaveInSeq()
+    <panel_attributes>SENSOR_ACCEL_GYRO_STOP_REQ/ defer
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLSpecialState</id>
     <coordinates>
-      <x>600</x>
+      <x>588</x>
       <y>36</y>
       <w>24</w>
       <h>24</h>
@@ -298,7 +300,7 @@ style=wordwrap</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>168</x>
+      <x>156</x>
       <y>852</y>
       <w>420</w>
       <h>264</h>
@@ -322,7 +324,7 @@ valign=top
   <element>
     <id>UMLSpecialState</id>
     <coordinates>
-      <x>252</x>
+      <x>240</x>
       <y>804</y>
       <w>24</w>
       <h>24</h>
@@ -333,7 +335,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>252</x>
+      <x>240</x>
       <y>804</y>
       <w>156</w>
       <h>72</h>
@@ -344,7 +346,7 @@ valign=top
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>888</x>
+      <x>876</x>
       <y>852</y>
       <w>408</w>
       <h>264</h>
@@ -367,7 +369,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>576</x>
+      <x>564</x>
       <y>924</y>
       <w>336</w>
       <h>36</h>
@@ -378,7 +380,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>576</x>
+      <x>564</x>
       <y>1020</y>
       <w>336</w>
       <h>36</h>
@@ -389,7 +391,7 @@ valign=top
   <element>
     <id>Text</id>
     <coordinates>
-      <x>684</x>
+      <x>672</x>
       <y>900</y>
       <w>96</w>
       <h>36</h>
@@ -401,7 +403,7 @@ style=wordwrap</panel_attributes>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>672</x>
+      <x>660</x>
       <y>996</y>
       <w>144</w>
       <h>48</h>

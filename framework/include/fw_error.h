@@ -52,6 +52,8 @@ enum Error {
     ERROR_STATE,        // Invalid state.
     ERROR_UNAVAIL,      // Resource unavailable, busy.
     ERROR_PARAM,        // Invalid parameter, out of range.
+    ERROR_NETWORK,      // Network related errors.
+    ERROR_AUTH,         // Authentication error.
 };
 
 // HSM specific reason code to explain why an error code has occurred.

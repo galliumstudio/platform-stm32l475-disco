@@ -50,6 +50,7 @@
 #include "AOWashingMachineInterface.h"
 #include "TrafficInterface.h"
 #include "LevelMeterInterface.h"
+#include "NodeInterface.h"
 #include "SensorInterface.h"
 #include "bsp.h"
 #include <vector>
@@ -65,6 +66,9 @@
 #endif
 
 FW_DEFINE_THIS_FILE("System.cpp")
+
+#define SRV_DOMAIN      "192.168.1.233"
+#define SRV_PORT        60002
 
 using namespace FW;
 
@@ -122,10 +126,11 @@ QState System::Root(System * const me, QEvt const * const e) {
             Fw::Post(evt);
             return Q_HANDLED();
         }
+        // Test only.
+        case SYSTEM_RESTART_REQ:
         case SYSTEM_STOP_REQ: {
             EVENT(e);
-            Evt const &req = EVT_CAST(*e);
-            me->GetHsm().SaveInSeq(req);
+            me->GetHsm().Defer(e);
             return Q_TRAN(&System::Stopping);
         }
     }
@@ -149,6 +154,8 @@ QState System::Stopped(System * const me, QEvt const * const e) {
             Fw::Post(evt);
             return Q_HANDLED();
         }
+        // Test only.
+        case SYSTEM_RESTART_REQ:
         case SYSTEM_START_REQ: {
             EVENT(e);
             Evt const &req = EVT_CAST(*e);
@@ -171,7 +178,6 @@ QState System::Starting(System * const me, QEvt const * const e) {
         case Q_EXIT_SIG: {
             EVENT(e);
             me->m_stateTimer.Stop();
-            me->GetHsm().ClearInSeq();
             return Q_HANDLED();
         }
         case Q_INIT_SIG: {
@@ -189,12 +195,14 @@ QState System::Starting(System * const me, QEvt const * const e) {
                 evt = new SystemStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_TIMEOUT, GET_HSMN());
             }
             Fw::Post(evt);
+            me->GetHsm().ClearInSeq();
             return Q_TRAN(&System::Stopping);
         }
         case DONE: {
             EVENT(e);
             Evt *evt = new SystemStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_SUCCESS);
             Fw::Post(evt);
+            me->GetHsm().ClearInSeq();
             return Q_TRAN(&System::Started);
         }
     }
@@ -261,6 +269,10 @@ QState System::Starting1(System * const me, QEvt const * const e) {
             me->GetHsm().SaveOutSeq(*evt);
             Fw::Post(evt);
 
+            evt = new NodeStartReq(NODE, SYSTEM, GEN_SEQ(), SRV_DOMAIN, SRV_PORT);
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
+
             return Q_HANDLED();
         }
         case Q_EXIT_SIG: {
@@ -273,9 +285,10 @@ QState System::Starting1(System * const me, QEvt const * const e) {
         case WASH_START_CFM:
         case TRAFFIC_START_CFM:
         case GPIO_IN_START_CFM:
-        case GPIO_OUT_START_CFM: {
-            EVENT(e);
+        case GPIO_OUT_START_CFM:
+        case NODE_START_CFM: {
             ErrorEvt const &cfm = ERROR_EVT_CAST(*e);
+            ERROR_EVENT(cfm);
             bool allReceived;
             if (!me->GetHsm().HandleCfmRsp(cfm, allReceived)) {
                 Evt *evt = new Failed(GET_HSMN(), cfm.GetError(), cfm.GetOrigin(), cfm.GetReason());
@@ -379,13 +392,14 @@ QState System::Stopping(System * const me, QEvt const * const e) {
         case Q_EXIT_SIG: {
             EVENT(e);
             me->m_stateTimer.Stop();
-            me->GetHsm().ClearInSeq();
             me->GetHsm().Recall();
             return Q_HANDLED();
         }
         case Q_INIT_SIG: {
             return Q_TRAN(&System::Stopping1);
         }
+        // Test only.
+        case SYSTEM_RESTART_REQ:
         case SYSTEM_STOP_REQ: {
             EVENT(e);
             me->GetHsm().Defer(e);
@@ -400,8 +414,6 @@ QState System::Stopping(System * const me, QEvt const * const e) {
         }
         case DONE: {
             EVENT(e);
-            Evt *evt = new SystemStopCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_SUCCESS);
-            Fw::Post(evt);
             return Q_TRAN(&System::Stopped);
         }
     }
@@ -478,6 +490,10 @@ QState System::Stopping2(System * const me, QEvt const * const e) {
             me->GetHsm().SaveOutSeq(*evt);
             Fw::Post(evt);
 
+            evt = new NodeStopReq(NODE, SYSTEM, GEN_SEQ());
+            me->GetHsm().SaveOutSeq(*evt);
+            Fw::Post(evt);
+
             evt = new SensorStopReq(SENSOR, SYSTEM, GEN_SEQ());
             me->GetHsm().SaveOutSeq(*evt);
             Fw::Post(evt);
@@ -495,6 +511,7 @@ QState System::Stopping2(System * const me, QEvt const * const e) {
         case TRAFFIC_STOP_CFM:
         case GPIO_IN_STOP_CFM:
         case GPIO_OUT_STOP_CFM:
+        case NODE_STOP_CFM:
         case SENSOR_STOP_CFM: {
             EVENT(e);
             ErrorEvt const &cfm = ERROR_EVT_CAST(*e);

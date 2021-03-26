@@ -43,6 +43,9 @@
 #include "Console.h"
 #include "SystemCmd.h"
 #include "SystemInterface.h"
+#include "LevelMeterInterface.h"
+#include "DispInterface.h"
+#include "tensorflow/lite/micro/examples/hello_world/main_functions.h"
 
 FW_DEFINE_THIS_FILE("SystemCmd.cpp")
 
@@ -110,6 +113,37 @@ static CmdStatus Cpu(Console &console, Evt const *e) {
     return CMD_DONE;
 }
 
+static CmdStatus Tensor(Console &console, Evt const *e) {
+    switch (e->sig) {
+        case Console::CONSOLE_CMD: {
+            setup();
+            /*
+            while (true) {
+              loop();
+            }
+            */
+            Evt *evt = new LevelMeterStopReq(LEVEL_METER, CONSOLE, 0);
+            Fw::Post(evt);
+            break;
+        }
+        case LEVEL_METER_STOP_CFM: {
+            console.GetTimer().Start(100, Timer::PERIODIC);
+            Evt *evt = new DispStartReq(ILI9341, CONSOLE, 0);
+            Fw::Post(evt);
+            evt = new DispDrawBeginReq(ILI9341, CONSOLE, 0);
+            Fw::Post(evt);
+            evt = new DispDrawRectReq(ILI9341, CONSOLE, 0, 0, 240, 320, COLOR24_BLUE);
+            Fw::Post(evt);
+            break;
+        }
+        case Console::CONSOLE_TIMER: {
+            loop();
+            break;
+        }
+    }
+    return CMD_CONTINUE;
+}
+
 static CmdStatus List(Console &console, Evt const *e);
 static CmdHandler const cmdHandler[] = {
     { "test",       Test,       "Test function", 0 },
@@ -117,6 +151,7 @@ static CmdHandler const cmdHandler[] = {
     { "stop",       Stop,       "Stop HSM", 0 },
     { "start",      Start,      "Start HSM", 0 },
     { "cpu",        Cpu,        "Report CPU util", 0 },
+    { "tensor",     Tensor,     "Tensorflow Lite demo", 0},
 };
 
 static CmdStatus List(Console &console, Evt const *e) {

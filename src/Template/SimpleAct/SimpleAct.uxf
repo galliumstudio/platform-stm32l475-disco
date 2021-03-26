@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<diagram program="umlet" version="14.2.0">
+<diagram program="umlet" version="14.2">
   <help_text>// Uncomment the following line to change the fontsize and font:
 fontsize=11
 fontfamily=Monospaced //possible: SansSerif,Serif,Monospaced
@@ -87,7 +87,7 @@ valign=top
 --
 entry/ start stateTimer, ResetOutSeq(),
        ^XXX_STOP_REQ, SaveOutSeq()
-exit/ stop stateTimer, ClearInSeq(), recall
+exit/ stop stateTimer, recall
 
 SIMPLE_ACT_STOP_REQ/ defer
 
@@ -111,7 +111,7 @@ valign=top
 --
 entry/ start stateTimer, ResetOutSeq(),
        ^XXX_START_REQ, SaveOutSeq()
-exit/ stop stateTimer, ClearInSeq()
+exit/ stop stateTimer
 
 XXX_START_CFM
 / if (!HandleCfmRsp()) ^^FAILED(error)
@@ -225,12 +225,13 @@ style=wordwrap</panel_attributes>
     <id>Text</id>
     <coordinates>
       <x>480</x>
-      <y>360</y>
+      <y>350</y>
       <w>260</w>
       <h>50</h>
     </coordinates>
     <panel_attributes>FAILED, STATE_TIMER
-/ ^SIMPLE_ACT_START_CFM(error)
+/ ^SIMPLE_ACT_START_CFM(error),
+  ClearInSeq()
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
@@ -242,7 +243,7 @@ style=wordwrap</panel_attributes>
       <w>250</w>
       <h>30</h>
     </coordinates>
-    <panel_attributes>DONE/ ^SIMPLE_ACT_STOP_CFM(SUCCESS)
+    <panel_attributes>DONE
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
@@ -266,19 +267,20 @@ style=wordwrap</panel_attributes>
       <w>270</w>
       <h>40</h>
     </coordinates>
-    <panel_attributes>DONE/ ^SIMPLE_ACT_START_CFM(SUCCESS)
+    <panel_attributes>DONE/ ^SIMPLE_ACT_START_CFM(SUCCESS),
+      ClearInSeq()
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>720</x>
+      <x>750</x>
       <y>540</y>
       <w>240</w>
       <h>30</h>
     </coordinates>
-    <panel_attributes>SIMPLE_ACT_STOP_REQ /SaveInSeq()
+    <panel_attributes>SIMPLE_ACT_STOP_REQ/ defer
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>

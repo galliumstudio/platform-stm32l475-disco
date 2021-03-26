@@ -71,12 +71,13 @@ enum KernelAwareISRs {
     I2C2_EV_PRIO            = QF_AWARE_ISR_CMSIS_PRI + 1,   // I2C2 Event IRQ (Sensor)
     I2C2_ER_PRIO            = QF_AWARE_ISR_CMSIS_PRI + 1,   // I2C2 Error IRQ (Sensor)
     SPI1_PRIO               = QF_AWARE_ISR_CMSIS_PRI + 1,   // SPI1 IRQ
+    SPI3_PRIO               = QF_AWARE_ISR_CMSIS_PRI + 1,   // SPI3 IRQ
     DMA2_CHANNEL4_PRIO      = QF_AWARE_ISR_CMSIS_PRI + 1,   // SPI1 TX DMA
     DMA2_CHANNEL3_PRIO      = QF_AWARE_ISR_CMSIS_PRI + 1,   // SPI1 RX DMA
     DMA2_CHANNEL6_PRIO      = QF_AWARE_ISR_CMSIS_PRI + 1,   // USART1 TX DMA
     DMA2_CHANNEL7_PRIO      = QF_AWARE_ISR_CMSIS_PRI + 1,   // USART1 RX DMA
     EXTI0_PRIO              = QF_AWARE_ISR_CMSIS_PRI + 10,
-    EXTI1_PRIO              = QF_AWARE_ISR_CMSIS_PRI + 10,
+    EXTI1_PRIO              = QF_AWARE_ISR_CMSIS_PRI + 10,  // WIFI CMD DATA READY
     EXTI2_PRIO              = QF_AWARE_ISR_CMSIS_PRI + 10,
     EXTI3_PRIO              = QF_AWARE_ISR_CMSIS_PRI + 10,
     EXTI4_PRIO              = QF_AWARE_ISR_CMSIS_PRI + 10,

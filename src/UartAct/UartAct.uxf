@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<diagram program="umlet" version="14.2.0">
+<diagram program="umlet" version="14.2">
   <help_text>// Uncomment the following line to change the fontsize and font:
 fontsize=11
 fontfamily=Monospaced //possible: SansSerif,Serif,Monospaced
@@ -28,10 +28,10 @@ fontfamily=Monospaced //possible: SansSerif,Serif,Monospaced
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>9</x>
-      <y>0</y>
+      <x>45</x>
+      <y>126</y>
       <w>1089</w>
-      <h>783</h>
+      <h>819</h>
     </coordinates>
     <panel_attributes>UartAct::Root
 --
@@ -46,16 +46,17 @@ valign=top
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>378</x>
-      <y>72</y>
+      <x>414</x>
+      <y>207</y>
       <w>369</w>
-      <h>99</h>
+      <h>117</h>
     </coordinates>
     <panel_attributes>Stopped
 --
 UART_ACT_STOP_REQ/ ^UART_ACT_STOP_CFM(SUCCESS)
 UART_ACT_START_REQ
-/ if (HAL_UART_Init() == OK)
+/ InitUart(),
+  if (HAL_UART_Init() == OK)
     SaveInSeq(), save fifo's, save client, ^^START
   else ^UART_ACT_START_CFM(HAL) 
 
@@ -66,8 +67,8 @@ valign=top
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>72</x>
-      <y>540</y>
+      <x>108</x>
+      <y>702</y>
       <w>972</w>
       <h>198</h>
     </coordinates>
@@ -82,8 +83,8 @@ valign=top
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>702</x>
-      <y>261</y>
+      <x>738</x>
+      <y>423</y>
       <w>342</w>
       <h>198</h>
     </coordinates>
@@ -92,7 +93,7 @@ valign=top
 entry/ start stateTimer, ResetOutSeq(),
        ^UART_IN_STOP_REQ, ^UART_OUT_STOP_REQ,
        SaveOutSeq()
-exit/ stop stateTimer, ClearInSeq(), recall
+exit/ stop stateTimer, recall
 
 UART_ACT_STOP_REQ / defer
 UART_IN_STOP_CFM, UART_OUT_STOP_CFM
@@ -106,19 +107,19 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>216</x>
-      <y>117</y>
+      <x>252</x>
+      <y>252</y>
       <w>180</w>
-      <h>162</h>
+      <h>189</h>
     </coordinates>
     <panel_attributes>lt=-&gt;&gt;&gt;</panel_attributes>
-    <additional_attributes>180.0;10.0;10.0;10.0;10.0;160.0</additional_attributes>
+    <additional_attributes>180.0;10.0;10.0;10.0;10.0;190.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>405</x>
-      <y>351</y>
+      <x>441</x>
+      <y>513</y>
       <w>315</w>
       <h>27</h>
     </coordinates>
@@ -128,8 +129,8 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>216</x>
-      <y>450</y>
+      <x>252</x>
+      <y>612</y>
       <w>27</w>
       <h>108</h>
     </coordinates>
@@ -139,8 +140,8 @@ valign=top
   <element>
     <id>UMLSpecialState</id>
     <coordinates>
-      <x>495</x>
-      <y>36</y>
+      <x>531</x>
+      <y>171</y>
       <w>18</w>
       <h>18</h>
     </coordinates>
@@ -150,8 +151,8 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>504</x>
-      <y>36</y>
+      <x>540</x>
+      <y>171</y>
       <w>72</w>
       <h>54</h>
     </coordinates>
@@ -161,19 +162,19 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>738</x>
-      <y>117</y>
+      <x>774</x>
+      <y>252</y>
       <w>153</w>
-      <h>162</h>
+      <h>189</h>
     </coordinates>
     <panel_attributes>lt=-&gt;&gt;&gt;</panel_attributes>
-    <additional_attributes>150.0;160.0;150.0;10.0;10.0;10.0</additional_attributes>
+    <additional_attributes>150.0;190.0;150.0;10.0;10.0;10.0</additional_attributes>
   </element>
   <element>
     <id>UMLSpecialState</id>
     <coordinates>
-      <x>729</x>
-      <y>189</y>
+      <x>765</x>
+      <y>351</y>
       <w>18</w>
       <h>18</h>
     </coordinates>
@@ -183,8 +184,8 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>729</x>
-      <y>198</y>
+      <x>765</x>
+      <y>360</y>
       <w>27</w>
       <h>81</h>
     </coordinates>
@@ -194,8 +195,8 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>864</x>
-      <y>450</y>
+      <x>900</x>
+      <y>612</y>
       <w>252</w>
       <h>81</h>
     </coordinates>
@@ -205,8 +206,8 @@ valign=top
   <element>
     <id>Text</id>
     <coordinates>
-      <x>225</x>
-      <y>171</y>
+      <x>261</x>
+      <y>333</y>
       <w>72</w>
       <h>27</h>
     </coordinates>
@@ -217,35 +218,36 @@ style=wordwrap</panel_attributes>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>423</x>
-      <y>324</y>
-      <w>279</w>
+      <x>486</x>
+      <y>477</y>
+      <w>234</w>
       <h>45</h>
     </coordinates>
     <panel_attributes>FAIL, STATE_TIMER
-/ ^UART_ACT_START_CFM(error)
+/ ^UART_ACT_START_CFM(error),
+  ClearInSeq()
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>873</x>
-      <y>171</y>
+      <x>909</x>
+      <y>333</y>
       <w>198</w>
       <h>54</h>
     </coordinates>
     <panel_attributes>DONE
-/ HAL_UART_DeInit(), 
-  ^UART_ACT_STOP_CFM(SUCCESS)
+/ HAL_UART_DeInit(),
+  DeInitUart();
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>603</x>
-      <y>216</y>
+      <x>639</x>
+      <y>378</y>
       <w>144</w>
       <h>27</h>
     </coordinates>
@@ -257,31 +259,32 @@ style=wordwrap</panel_attributes>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>225</x>
-      <y>486</y>
-      <w>216</w>
+      <x>261</x>
+      <y>648</y>
+      <w>234</w>
       <h>36</h>
     </coordinates>
-    <panel_attributes>DONE/ ^UART_ACT_START_CFM(SUCCESS)
+    <panel_attributes>DONE/ ^UART_ACT_START_CFM(SUCCESS),
+      ClearInSeq()
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>684</x>
-      <y>486</y>
+      <x>747</x>
+      <y>648</y>
       <w>189</w>
       <h>45</h>
     </coordinates>
-    <panel_attributes>UART_ACT_STOP_REQ/ SaveInSeq()</panel_attributes>
+    <panel_attributes>UART_ACT_STOP_REQ/ defer</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>441</x>
-      <y>585</y>
+      <x>477</x>
+      <y>747</y>
       <w>279</w>
       <h>45</h>
     </coordinates>
@@ -294,8 +297,8 @@ style=wordwrap</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>135</x>
-      <y>603</y>
+      <x>171</x>
+      <y>765</y>
       <w>261</w>
       <h>81</h>
     </coordinates>
@@ -308,8 +311,8 @@ valign=top
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>720</x>
-      <y>603</y>
+      <x>756</x>
+      <y>765</y>
       <w>261</w>
       <h>81</h>
     </coordinates>
@@ -321,8 +324,8 @@ valign=top</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>216</x>
-      <y>567</y>
+      <x>252</x>
+      <y>729</y>
       <w>72</w>
       <h>54</h>
     </coordinates>
@@ -332,8 +335,8 @@ valign=top</panel_attributes>
   <element>
     <id>UMLSpecialState</id>
     <coordinates>
-      <x>207</x>
-      <y>567</y>
+      <x>243</x>
+      <y>729</y>
       <w>18</w>
       <h>18</h>
     </coordinates>
@@ -343,8 +346,8 @@ valign=top</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>387</x>
-      <y>630</y>
+      <x>423</x>
+      <y>792</y>
       <w>351</w>
       <h>27</h>
     </coordinates>
@@ -354,8 +357,8 @@ valign=top</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>72</x>
-      <y>261</y>
+      <x>108</x>
+      <y>423</y>
       <w>342</w>
       <h>198</h>
     </coordinates>
@@ -365,7 +368,7 @@ entry/ start stateTimer, ResetOutSeq(),
        ^UART_OUT_START_REQ(outFifo, client), 
        ^UART_IN_START_REQ(inFifo, client),
        SaveOutSeq()
-exit/ stop stateTimer, ClearInSeq()
+exit/ stop stateTimer
 
 UART_OUT_START_CFM, UART_IN_START_CFM
 / if (!HandleCfmRsp()) ^^FAIL(error)

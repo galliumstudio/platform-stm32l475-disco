@@ -109,7 +109,7 @@ Disp::Disp(QP::QStateHandler const initial, Hsmn hsmn, char const *name) :
 
 // Draw a character
 void Disp::FillMem(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t color) {
-    FW_ASSERT(((y+h-1)*w*2 + (x+w-1)*2 + 1) <= sizeof(m_memBuf));
+    FW_ASSERT((uint32_t)((y+h-1)*w*2 + (x+w-1)*2 + 1) <= sizeof(m_memBuf));
     for (uint32_t i=0; i<h; i++) {
         for (uint32_t j=0; j<w; j++) {
             // @todo - Currently hardcoded for 5 pixels per row and size (multiplier) of 4.

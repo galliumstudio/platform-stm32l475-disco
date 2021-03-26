@@ -47,6 +47,30 @@ using namespace QP;
 
 namespace FW {
 
+void EvtSet::Init(Category cat, EvtName evtName, EvtCount evtCount) {
+    FW_ASSERT(evtCount == 0 || evtName);
+    switch(cat) {
+        case TIMER_EVT: {
+            m_timerEvtName = evtName;
+            m_timerEvtCount = evtCount;
+            break;
+        }
+        case INTERNAL_EVT: {
+            m_internalEvtName = evtName;
+            m_internalEvtCount = evtCount;
+            break;
+        }
+        case INTERFACE_EVT: {
+            m_interfaceEvtName = evtName;
+            m_interfaceEvtCount = evtCount;
+            break;
+        }
+        default: {
+            FW_ASSERT(0);
+        }
+    }
+}
+
 char const *EvtSet::Get(QP::QSignal signal) const {
     uint32_t index;
     if (IS_TIMER_EVT(signal)) {

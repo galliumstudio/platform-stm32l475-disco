@@ -69,6 +69,9 @@
     // The maximum number of active objects in the application, see NOTE1
     #define QF_MAX_ACTIVE       32
 
+    // Gallium added.
+    #define QF_MAX_EPOOL        4
+
     // Cortex-M3/M4/M7 alternative interrupt disabling with PRIMASK
     #define QF_PRIMASK_DISABLE() __asm volatile ("cpsid i")
     #define QF_PRIMASK_ENABLE()  __asm volatile ("cpsie i")

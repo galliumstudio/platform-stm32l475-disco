@@ -262,8 +262,7 @@ QState UartAct::Root(UartAct * const me, QEvt const * const e) {
         }
         case UART_ACT_STOP_REQ: {
             EVENT(e);
-            Evt const &req = EVT_CAST(*e);
-            me->GetHsm().SaveInSeq(req);
+            me->GetHsm().Defer(e);
             status = Q_TRAN(&UartAct::Stopping);
             break;
         }
@@ -361,7 +360,6 @@ QState UartAct::Starting(UartAct * const me, QEvt const * const e) {
         case Q_EXIT_SIG: {
             EVENT(e);
             me->m_stateTimer.Stop();
-            me->GetHsm().ClearInSeq();
             status = Q_HANDLED();
             break;
         }
@@ -392,6 +390,7 @@ QState UartAct::Starting(UartAct * const me, QEvt const * const e) {
                 evt = new UartActStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_TIMEOUT, GET_HSMN());
             }
             Fw::Post(evt);
+            me->GetHsm().ClearInSeq();
             status = Q_TRAN(&UartAct::Stopping);
             break;
         }
@@ -399,6 +398,7 @@ QState UartAct::Starting(UartAct * const me, QEvt const * const e) {
             EVENT(e);
             Evt *evt = new UartActStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_SUCCESS);
             Fw::Post(evt);
+            me->GetHsm().ClearInSeq();
             status = Q_TRAN(&UartAct::Started);
             break;
         }
@@ -433,9 +433,8 @@ QState UartAct::Stopping(UartAct * const me, QEvt const * const e) {
         case Q_EXIT_SIG: {
             EVENT(e);
             me->m_stateTimer.Stop();
-            me->GetHsm().ClearInSeq();
-            status = Q_HANDLED();
             me->GetHsm().Recall();
+            status = Q_HANDLED();
             break;
         }
         case UART_ACT_STOP_REQ: {
@@ -469,8 +468,6 @@ QState UartAct::Stopping(UartAct * const me, QEvt const * const e) {
         }
         case DONE: {
             EVENT(e);
-            Evt *evt = new UartActStopCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_SUCCESS);
-            Fw::Post(evt);
             HAL_UART_DeInit(&me->m_hal);
             me->DeInitUart();
             status = Q_TRAN(&UartAct::Stopped);

@@ -82,6 +82,18 @@ public:
     uint32_t GetUsedCountNoCrit() const {
         return (m_writeIndex - m_readIndex) & m_mask;
     }
+    // Gets the largest contiguous used block size in byte.
+    uint32_t GetUsedBlockCount() const {
+        uint32_t count;
+        QF_CRIT_STAT_TYPE crit;
+        QF_CRIT_ENTRY(crit);
+        count = GetUsedCountNoCrit();
+        if ((m_readIndex + count) > (m_mask + 1)) {
+            count = m_mask + 1 - m_readIndex;
+        }
+        QF_CRIT_EXIT(crit);
+        return count;
+    }
     uint32_t GetAvailCount() const {
         QF_CRIT_STAT_TYPE crit;
         QF_CRIT_ENTRY(crit);
@@ -93,6 +105,18 @@ public:
     // total storage - 1, i.e. m_mask.
     uint32_t GetAvailCountNoCrit() const {
         return (m_readIndex - m_writeIndex - 1) & m_mask;
+    }
+    // Gets the largest contiguous unused block size in byte.
+    uint32_t GetAvailBlockCount() const {
+        uint32_t count;
+        QF_CRIT_STAT_TYPE crit;
+        QF_CRIT_ENTRY(crit);
+        count = GetAvailCountNoCrit();
+        if ((m_writeIndex + count) > (m_mask + 1)) {
+            count = m_mask + 1 - m_writeIndex;
+        }
+        QF_CRIT_EXIT(crit);
+        return count;
     }
     uint32_t GetDiff(uint32_t a, uint32_t b) { return (a - b) & m_mask; }
     uint32_t GetAddr(uint32_t index) { return reinterpret_cast<uint32_t>(&m_stor[index & m_mask]); }
@@ -117,16 +141,10 @@ public:
         QF_CRIT_EXIT(crit);
     }
     void IncWriteIndexNoCrit(uint32_t count) {
-        QF_CRIT_STAT_TYPE crit;
-        QF_CRIT_ENTRY(crit);
         IncIndex(m_writeIndex, count);
-        QF_CRIT_EXIT(crit);
     }
     void IncReadIndexNoCrit(uint32_t count) {
-        QF_CRIT_STAT_TYPE crit;
-        QF_CRIT_ENTRY(crit);
         IncIndex(m_readIndex, count);
-        QF_CRIT_EXIT(crit);
     }
 
     // Return written count. If not enough space to write all, return 0 (i.e. no partial write).
@@ -166,6 +184,16 @@ public:
         return count;
     }
 
+    // Writes a single entry without critical section.
+    bool WriteNoCrit(Type const &s) {
+        if (GetAvailCountNoCrit() == 0) {
+            return false;
+        }
+        m_stor[m_writeIndex] = s;
+        IncIndex(m_writeIndex, 1);
+        return true;
+    }
+
     // Return actual read count. Okay if data in pipe < count.
     uint32_t Read(Type *dest, uint32_t count, bool *status = NULL) {
         QF_CRIT_STAT_TYPE crit;
@@ -196,6 +224,16 @@ public:
             }
         }
         return count;
+    }
+
+    // Reads a single entry without critical section.
+    bool ReadNoCrit(Type &d) {
+        if (IsEmpty()) {
+            return false;
+        }
+        d = m_stor[m_readIndex];
+        IncIndex(m_readIndex, 1);
+        return true;
     }
 
     // Performs the cache operation passed in on the read buffer for the specified count (in unit of T).

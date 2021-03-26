@@ -346,7 +346,7 @@ QState UartIn::Active(UartIn * const me, QEvt const * const e) {
     switch (e->sig) {
         case Q_ENTRY_SIG: {
             EVENT(e);
-            me->m_activeTimer.Start(ACTIVE_TIMER_MS);
+            me->m_activeTimer.Start(ACTIVE_TIMEOUT_MS);
             me->EnableRxInt();
             me->m_dataRecv = false;
             status = Q_HANDLED();

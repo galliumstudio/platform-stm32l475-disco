@@ -41,7 +41,9 @@
 
 #include "fw_def.h"
 #include "fw_evt.h"
+#include "fw_msg.h"
 #include "app_hsmn.h"
+#include "SensorMsgInterface.h"
 
 using namespace QP;
 using namespace FW;
@@ -52,7 +54,11 @@ namespace APP {
     ADD_EVT(LEVEL_METER_START_REQ) \
     ADD_EVT(LEVEL_METER_START_CFM) \
     ADD_EVT(LEVEL_METER_STOP_REQ) \
-    ADD_EVT(LEVEL_METER_STOP_CFM)
+    ADD_EVT(LEVEL_METER_STOP_CFM) \
+    ADD_EVT(LEVEL_METER_CONTROL_REQ) \
+    ADD_EVT(LEVEL_METER_CONTROL_CFM) \
+    ADD_EVT(LEVEL_METER_DATA_IND) \
+    ADD_EVT(LEVEL_METER_DATA_RSP)
 
 #undef ADD_EVT
 #define ADD_EVT(e_) e_,
@@ -96,6 +102,50 @@ public:
     LevelMeterStopCfm(Hsmn to, Hsmn from, Sequence seq,
                    Error error, Hsmn origin = HSM_UNDEF, Reason reason = 0) :
         ErrorEvt(LEVEL_METER_STOP_CFM, to, from, seq, error, origin, reason) {}
+};
+
+class LevelMeterControlReq : public MsgEvt {
+public:
+    enum {
+        TIMEOUT_MS = 300
+    };
+    // Must pass 'm_msg' as reference to member object and NOT the parameter 'msg'.
+    LevelMeterControlReq(Hsmn to, Hsmn from, SensorControlReqMsg const &r) :
+        MsgEvt(LEVEL_METER_CONTROL_REQ, to, from, m_msg), m_msg(r) {}
+    float GetPitchThres() const { return m_msg.GetPitchThres(); }
+    float GetRollThres() const { return m_msg.GetRollThres(); }
+protected:
+    SensorControlReqMsg m_msg;
+};
+
+class LevelMeterControlCfm : public ErrorMsgEvt {
+public:
+    LevelMeterControlCfm(Hsmn to, Hsmn from, SensorControlCfmMsg const &r) :
+        ErrorMsgEvt(LEVEL_METER_CONTROL_CFM, to, from, m_msg), m_msg(r) {}
+protected:
+    SensorControlCfmMsg m_msg;
+};
+
+class LevelMeterDataInd : public MsgEvt {
+public:
+    enum {
+        TIMEOUT_MS = 300
+    };
+    // Must pass 'm_msg' as reference to member object and NOT the parameter 'msg'.
+    LevelMeterDataInd(Hsmn to, Hsmn from, SensorDataIndMsg const &r) :
+        MsgEvt(LEVEL_METER_DATA_IND, to, from, m_msg), m_msg(r) {}
+    uint32_t GetPitch() const { return m_msg.GetPitch(); }
+    uint32_t GetRoll() const { return m_msg.GetRoll(); }
+protected:
+    SensorDataIndMsg m_msg;
+};
+
+class LevelMeterDataRsp : public ErrorMsgEvt {
+public:
+    LevelMeterDataRsp(Hsmn to, Hsmn from, SensorDataRspMsg const &r) :
+        ErrorMsgEvt(LEVEL_METER_DATA_RSP, to, from, m_msg), m_msg(r) {}
+protected:
+    SensorDataRspMsg m_msg;
 };
 
 } // namespace APP

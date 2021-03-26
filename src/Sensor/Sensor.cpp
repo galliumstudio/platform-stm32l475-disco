@@ -89,27 +89,10 @@ bool Sensor::I2cWriteInt(uint16_t devAddr, uint16_t memAddr, uint8_t *buf, uint1
 }
 
 bool Sensor::I2cReadInt(uint16_t devAddr, uint16_t memAddr, uint8_t *buf, uint16_t len) {
-    // Test only
-    //HAL_I2C_Mem_Read(&m_hal, devAddr, memAddr, I2C_MEMADD_SIZE_8BIT, buf, len, 10000);
-    //return true;
-
-    // Gallium - test only
-    //HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_SET);
     if (HAL_I2C_Mem_Read_IT(&m_hal, devAddr, memAddr, I2C_MEMADD_SIZE_8BIT, buf, len) != HAL_OK) {
         return false;
     }
-    // Gallium - test only
-    //HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
-
-    // Test only
-    //return m_i2cSem.wait(BSP_MSEC_TO_TICK(1000));
-    bool result = m_i2cSem.wait(BSP_MSEC_TO_TICK(1000));
-    // Gallium - test only
-    //HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
-    if (!result) {
-        return false;
-    }
-    return true;
+    return m_i2cSem.wait(BSP_MSEC_TO_TICK(1000));
 }
 
 void Sensor::InitI2c() {
@@ -241,8 +224,7 @@ QState Sensor::Root(Sensor * const me, QEvt const * const e) {
         }
         case SENSOR_STOP_REQ: {
             EVENT(e);
-            Evt const &req = EVT_CAST(*e);
-            me->GetHsm().SaveInSeq(req);
+            me->GetHsm().Defer(e);
             return Q_TRAN(&Sensor::Stopping);
         }
     }
@@ -318,7 +300,6 @@ QState Sensor::Starting(Sensor * const me, QEvt const * const e) {
         case Q_EXIT_SIG: {
             EVENT(e);
             me->m_stateTimer.Stop();
-            me->GetHsm().ClearInSeq();
             return Q_HANDLED();
         }
         case SENSOR_ACCEL_GYRO_START_CFM:
@@ -349,12 +330,14 @@ QState Sensor::Starting(Sensor * const me, QEvt const * const e) {
                 evt = new SensorStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_TIMEOUT, GET_HSMN());
             }
             Fw::Post(evt);
+            me->GetHsm().ClearInSeq();
             return Q_TRAN(&Sensor::Stopping);
         }
         case DONE: {
             EVENT(e);
             Evt *evt = new SensorStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_SUCCESS);
             Fw::Post(evt);
+            me->GetHsm().ClearInSeq();
             return Q_TRAN(&Sensor::Started);
         }
     }
@@ -389,7 +372,6 @@ QState Sensor::Stopping(Sensor * const me, QEvt const * const e) {
         case Q_EXIT_SIG: {
             EVENT(e);
             me->m_stateTimer.Stop();
-            me->GetHsm().ClearInSeq();
             me->GetHsm().Recall();
             return Q_HANDLED();
         }
@@ -423,8 +405,6 @@ QState Sensor::Stopping(Sensor * const me, QEvt const * const e) {
         }
         case DONE: {
             EVENT(e);
-            Evt *evt = new SensorStopCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_SUCCESS);
-            Fw::Post(evt);
             HAL_I2C_DeInit(&me->m_hal);
             me->DeInitI2c();
             return Q_TRAN(&Sensor::Stopped);

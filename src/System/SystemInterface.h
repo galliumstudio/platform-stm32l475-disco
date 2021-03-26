@@ -52,6 +52,7 @@ namespace APP {
     ADD_EVT(SYSTEM_START_CFM) \
     ADD_EVT(SYSTEM_STOP_REQ) \
     ADD_EVT(SYSTEM_STOP_CFM) \
+    ADD_EVT(SYSTEM_RESTART_REQ) \
     ADD_EVT(SYSTEM_CPU_UTIL_REQ)
 
 #undef ADD_EVT
@@ -111,6 +112,14 @@ private:
     bool m_enable;
 };
 
+class SystemRestartReq : public Evt {
+public:
+    enum {
+        TIMEOUT_MS = 1000
+    };
+    SystemRestartReq(Hsmn to, Hsmn from, Sequence seq) :
+        Evt(SYSTEM_RESTART_REQ, to, from, seq) {}
+};
 
 } // namespace APP
 

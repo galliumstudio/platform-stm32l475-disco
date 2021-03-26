@@ -87,7 +87,7 @@ valign=top
 --
 entry/ start stateTimer, ResetOutSeq(),
        ^GPIO_IN_STOP_REQ, SaveOutSeq()
-exit/ stop stateTimer, ClearInSeq(), recall
+exit/ stop stateTimer, recall
 
 IKS01A1_HUMID_TEMP_STOP_REQ/ defer
 
@@ -111,7 +111,7 @@ valign=top
 --
 entry/ start stateTimer, ResetOutSeq(),
        ^GPIO_IN_START_REQ, SaveOutSeq()
-exit/ stop stateTimer, ClearInSeq()
+exit/ stop stateTimer
 
 GPIO_IN_START_CFM
 / if (!HandleCfmRsp()) ^^FAILED(error)
@@ -224,13 +224,14 @@ style=wordwrap</panel_attributes>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>576</x>
-      <y>444</y>
-      <w>312</w>
+      <x>552</x>
+      <y>432</y>
+      <w>336</w>
       <h>60</h>
     </coordinates>
     <panel_attributes>FAILED, STATE_TIMER
-/ ^IKS01A1_HUMID_TEMP_START_CFM(error)
+/ ^IKS01A1_HUMID_TEMP_START_CFM(error),
+  ClearInSeq()
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
@@ -242,7 +243,7 @@ style=wordwrap</panel_attributes>
       <w>300</w>
       <h>36</h>
     </coordinates>
-    <panel_attributes>DONE/ ^IKS01A1_HUMID_TEMP_STOP_CFM(SUCCESS)
+    <panel_attributes>DONE
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
@@ -263,10 +264,11 @@ style=wordwrap</panel_attributes>
     <coordinates>
       <x>276</x>
       <y>660</y>
-      <w>324</w>
+      <w>372</w>
       <h>48</h>
     </coordinates>
-    <panel_attributes>DONE/ ^IKS01A1_HUMID_TEMP_START_CFM(SUCCESS)
+    <panel_attributes>DONE/ ^IKS01A1_HUMID_TEMP_START_CFM(SUCCESS),
+      ClearInSeq()
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
@@ -278,7 +280,7 @@ style=wordwrap</panel_attributes>
       <w>288</w>
       <h>36</h>
     </coordinates>
-    <panel_attributes>IKS01A1_HUMID_TEMP_STOP_REQ /SaveInSeq()
+    <panel_attributes>IKS01A1_HUMID_TEMP_STOP_REQ/ defer
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>

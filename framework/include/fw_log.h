@@ -54,9 +54,14 @@ namespace FW {
 #define SET_EVT_NAME(evtHsmn_)   Log::SetEvtName(evtHsmn_, timerEvtName, ARRAY_COUNT(timerEvtName), \
                                                  internalEvtName, ARRAY_COUNT(internalEvtName), \
                                                  interfaceEvtName, ARRAY_COUNT(interfaceEvtName))
+#define SET_TIMER_EVT_NAME(evtHsmn_)        Log::SetEvtName(evtHsmn_, EvtSet::TIMER_EVT, timerEvtName, ARRAY_COUNT(timerEvtName))
+#define SET_INTERNAL_EVT_NAME(evtHsmn_)     Log::SetEvtName(evtHsmn_, EvtSet::INTERNAL_EVT, internalEvtName, ARRAY_COUNT(internalEvtName))
+#define SET_INTERFACE_EVT_NAME(evtHsmn_)    Log::SetEvtName(evtHsmn_, EvtSet::INTERFACE_EVT, interfaceEvtName, ARRAY_COUNT(interfaceEvtName))
+
 #define PRINT(format_, ...)      Log::Print(HSM_UNDEF, format_, ## __VA_ARGS__)
 // The following macros can only be used within an HSM. Newline is automatically appended.
 #define EVENT(e_)                Log::Event(Log::TYPE_LOG, me->GetHsm().GetHsmn(), e_, __FUNCTION__);
+#define ERROR_EVENT(e_)          Log::ErrorEvent(Log::TYPE_LOG, me->GetHsm().GetHsmn(), e_, __FUNCTION__);
 #define INFO(format_, ...)       Log::Debug(Log::TYPE_INFO, me->GetHsm().GetHsmn(), format_, ## __VA_ARGS__)
 #define LOG(format_, ...)        Log::Debug(Log::TYPE_LOG, me->GetHsm().GetHsmn(), format_, ## __VA_ARGS__)
 #define CRITICAL(format_, ...)   Log::Debug(Log::TYPE_CRITICAL, me->GetHsm().GetHsmn(), format_, ## __VA_ARGS__)
@@ -96,7 +101,7 @@ public:
     };
 
     enum {
-        BUF_LEN = 160,
+        BUF_LEN = 512, //160,
         BYTE_PER_LINE = 16
     };
 
@@ -104,6 +109,7 @@ public:
     static void SetEvtName(Hsmn evtHsmn, EvtName timerEvtName, EvtCount timerEvtCount,
                            EvtName internalEvtName, EvtCount internalEvtCount,
                            EvtName interfaceEvtName, EvtCount interfaceEvtCount);
+    static void SetEvtName(Hsmn evtHsmn, EvtSet::Category cat, EvtName evtName, EvtCount evtCount);
     static char const *GetEvtName(QP::QSignal signal);
     static char const *GetBuiltinEvtName(QP::QSignal signal);
     static char const *GetUndefName() { return m_undefName; }
@@ -121,6 +127,7 @@ public:
     static uint32_t Print(Hsmn infHsmn, char const *format, ...);
     static uint32_t PrintItem(Hsmn infHsmn, uint32_t index, uint32_t minWidth, uint32_t itemPerLine, char const *format, ...);
     static void Event(Type type, Hsmn hsmn, QP::QEvt const *e, char const *func);
+    static void ErrorEvent(Type type, Hsmn hsmn, ErrorEvt const &e, char const *func);
     static void Debug(Type type, Hsmn hsmn, char const *format, ...);
     static uint32_t PrintBufLine(Hsmn infHsmn, uint8_t const *lineBuf, uint32_t lineLen, uint8_t unit, uint32_t lineLabel);
     static uint32_t PrintBuf(Hsmn infHsmn, uint8_t const *dataBuf, uint32_t dataLen, uint8_t align = 1, uint32_t label = 0);

@@ -57,7 +57,9 @@
         } \
     } while(0)
 
+#define STRBUF_COPY(to_, from_)     STRING_COPY(to_, from_, sizeof(to_))
 #define STRING_EQUAL(s1_, s2_) (strcmp((s1_), (s2_)) == 0)
+#define STRBUF_EQUAL(b_, s_) (strncmp((b_), (s_), sizeof(b_)) == 0)
 #define STRING_TO_NUM(s, base) (strtoul(s, NULL, base))
 
 #define CONST_STRING_LEN(a_)        (sizeof(a_) - 1)

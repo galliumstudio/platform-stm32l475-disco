@@ -61,13 +61,20 @@ public:
         FW_EVT_SET_ASSERT(internalEvtCount == 0 || internalEvtName);
         FW_EVT_SET_ASSERT(interfaceEvtCount == 0 || interfaceEvtName);
         m_timerEvtName = timerEvtName;
-        m_timerEvtCount = timerEvtCount,
+        m_timerEvtCount = timerEvtCount;
         m_internalEvtName = internalEvtName;
         m_internalEvtCount = internalEvtCount;
         m_interfaceEvtName = interfaceEvtName;
         m_interfaceEvtCount = interfaceEvtCount;
     }
 
+    enum Category {
+        TIMER_EVT,
+        INTERNAL_EVT,
+        INTERFACE_EVT,
+        CATEGORY_COUNT
+    };
+    void Init(Category cat, EvtName evtName, EvtCount evtCount);
     char const *Get(QP::QSignal signal) const;
 
 protected:

@@ -102,6 +102,15 @@ void Log::SetEvtName(Hsmn evtHsmn, EvtName timerEvtName, EvtCount timerEvtCount,
     QF_CRIT_EXIT(crit);
 }
 
+void Log::SetEvtName(Hsmn evtHsmn, EvtSet::Category cat, EvtName evtName, EvtCount evtCount) {
+    EvtSetStor stor = GetEvtSetStor();
+    FW_ASSERT(stor && (evtHsmn < ARRAY_COUNT(*stor)));
+    QF_CRIT_STAT_TYPE crit;
+    QF_CRIT_ENTRY(crit);
+    (*stor)[evtHsmn].Init(cat, evtName, evtCount);
+    QF_CRIT_EXIT(crit);
+}
+
 char const *Log::GetEvtName(QSignal signal) {
     if (signal < Q_USER_SIG) {
         return GetBuiltinEvtName(signal);
@@ -296,6 +305,20 @@ void Log::Event(Type type, Hsmn hsmn, QP::QEvt const *e, char const *func) {
     } else {
         Print(HSM_UNDEF, "%lu %s(%u): %s %s\n\r", GetSystemMs(), hsm->GetName(), hsmn, func, GetEvtName(e->sig));
     }
+}
+
+void Log::ErrorEvent(Type type, Hsmn hsmn, ErrorEvt const &e, char const *func) {
+    FW_ASSERT(func);
+    Hsm *hsm = Fw::GetHsm(hsmn);
+    FW_ASSERT(hsm);
+    if (!IsOutput(type, hsmn)) {
+        return;
+    }
+    Hsmn from = e.GetFrom();
+    Hsmn origin = e.GetOrigin();
+    Print(HSM_UNDEF, "%lu %s(%u): %s %s from %s(%d) seq=%d error=%d origin=%s(%d) reason=%d\n\r",
+          GetSystemMs(), hsm->GetName(), hsmn, func, GetEvtName(e.sig), GetHsmName(from), from, e.GetSeq(),
+          e.GetError(), GetHsmName(origin), origin, e.GetReason());
 }
 
 void Log::Debug(Type type, Hsmn hsmn, char const *format, ...) {

@@ -89,6 +89,8 @@
 #include "Demo.h"
 #include "Ili9341Thread.h"
 #include "SensorThread.h"
+#include "WifiThread.h"
+#include "Node.h"
 #include "GpioOutAct.h"
 #include "AOWashingMachine.h"
 #include "Traffic.h"
@@ -127,6 +129,8 @@ static GpioInAct gpioInAct;
 static UartAct uartAct1(UART1_ACT, "UART1_ACT", "UART1_IN", "UART1_OUT");
 static Ili9341Thread ili9341Thread;
 static SensorThread sensorThread;
+static WifiThread wifiThread;
+static Node node;
 
 /* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
@@ -157,6 +161,7 @@ int main(void)
     Log::Off(SENSOR_ACCEL_GYRO);
     Log::Off(ACCEL_GYRO_INT);
     Log::Off(LEVEL_METER);
+    Log::Off(NODE_PARSER);
 
     // Start active objects.
     compositeAct.Start(PRIO_COMPOSITE_ACT);
@@ -171,6 +176,8 @@ int main(void)
     consoleUart1.Start(PRIO_CONSOLE_UART1);
     ili9341Thread.Start(PRIO_ILI9341);
     sensorThread.Start(PRIO_SENSOR);
+    wifiThread.Start(PRIO_WIFI);
+    node.Start(PRIO_NODE);
     sys.Start(PRIO_SYSTEM);
 
     // Kick off the topmost active objects.

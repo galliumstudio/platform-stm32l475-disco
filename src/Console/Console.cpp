@@ -75,7 +75,7 @@ static char const * const interfaceEvtName[] = {
 };
 
 enum {
-    OUT_FIFO_ORDER = 13,
+    OUT_FIFO_ORDER = 12,
     IN_FIFO_ORDER = 10,
 };
 
@@ -313,8 +313,7 @@ QState Console::Root(Console * const me, QEvt const * const e) {
         }
         case CONSOLE_STOP_REQ: {
             EVENT(e);
-            Evt const &req = EVT_CAST(*e);
-            me->GetHsm().SaveInSeq(req);
+            me->GetHsm().Defer(e);
             return Q_TRAN(&Console::Stopping);
         }
     }
@@ -377,7 +376,6 @@ QState Console::Starting(Console * const me, QEvt const * const e) {
         case Q_EXIT_SIG: {
             EVENT(e);
             me->m_stateTimer.Stop();
-            me->GetHsm().ClearInSeq();
             return Q_HANDLED();
         }
         // Add other interface events here.
@@ -406,12 +404,14 @@ QState Console::Starting(Console * const me, QEvt const * const e) {
                 evt = new ConsoleStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_TIMEOUT, GET_HSMN());
             }
             Fw::Post(evt);
+            me->GetHsm().ClearInSeq();
             return Q_TRAN(&Console::Stopping);
         }
         case DONE: {
             EVENT(e);
             Evt *evt = new ConsoleStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_SUCCESS);
             Fw::Post(evt);
+            me->GetHsm().ClearInSeq();
             return Q_TRAN(&Console::Started);
         }
     }
@@ -440,7 +440,6 @@ QState Console::Stopping(Console * const me, QEvt const * const e) {
         case Q_EXIT_SIG: {
             EVENT(e);
             me->m_stateTimer.Stop();
-            me->GetHsm().ClearInSeq();
             me->GetHsm().Recall();
             return Q_HANDLED();
         }
@@ -472,8 +471,6 @@ QState Console::Stopping(Console * const me, QEvt const * const e) {
         }
         case DONE: {
             EVENT(e);
-            Evt *evt = new ConsoleStopCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_SUCCESS);
-            Fw::Post(evt);
             return Q_TRAN(&Console::Stopped);
         }
     }

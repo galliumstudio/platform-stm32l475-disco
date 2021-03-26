@@ -71,6 +71,10 @@ protected:
     AccelGyroReport m_accelGyroStor[1 << ACCEL_GYRO_PIPE_ORDER];
     AccelGyroPipe m_accelGyroPipe;
     AccelGyroReport m_avgReport;
+    float m_pitch;              // Average pitch in degree.
+    float m_roll;               // Average roll in degree.
+    float m_pitchThres;         // Pitch alarm threshold in degree (applies to negative threshold).
+    float m_rollThres;          // Roll alarm threshold in degree (applies to negative threshold).
 
     enum {
         REPORT_TIMEOUT_MS = 333

@@ -71,6 +71,7 @@ static char const * const hsmName[] = {
     "MAG_DRDY",
     "HUMID_TEMP_DRDY",
     "PRESS_INT",
+    "WIFI_DRDY",
     // Add more regions here.
 };
 

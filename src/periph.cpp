@@ -58,6 +58,10 @@ TIM_HandleTypeDef Periph::m_tim2Hal;
 // Ili9341 SPI1 - SCK PA.5, MISO PA.6, MOSI PA.7, CS PA.2 D/CX PA.15
 //                TX DMA2 Channel 4 Request 4
 //                RX DMA2 Channel 3 Request 4
+// WIFI SPI3 - SCK PC.10, MISO PC.11 MOSI PC.12, CS PE.0 (DMA not used.)
+// WIFI WAKEUP - PB.13
+// WIFI RESET - PE.8
+// WIFI CMD DATA RDY - PE.1
 // Sensor I2C2 - SCL PB.10, SDA PB.11
 //             - TX DMA1 Channel 4 Request 3 (not used)
 //             - RX DMA1 Channel 5 Request 3 (not used)
@@ -79,6 +83,7 @@ void Periph::SetupNormal() {
     __GPIOB_CLK_ENABLE();
     __GPIOC_CLK_ENABLE();
     __GPIOD_CLK_ENABLE();
+    __GPIOE_CLK_ENABLE();
     __HAL_RCC_DMA1_CLK_ENABLE();
     __HAL_RCC_DMA2_CLK_ENABLE();
     __HAL_RCC_TIM1_CLK_ENABLE();
@@ -108,6 +113,7 @@ void Periph::Reset() {
     __HAL_RCC_TIM1_CLK_DISABLE();
     __HAL_RCC_DMA2_CLK_DISABLE();
     __HAL_RCC_DMA1_CLK_DISABLE();
+    __GPIOE_CLK_DISABLE();
     __GPIOD_CLK_DISABLE();
     __GPIOC_CLK_DISABLE();
     __GPIOB_CLK_DISABLE();

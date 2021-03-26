@@ -100,8 +100,7 @@ QState SensorHumidTemp::Root(SensorHumidTemp * const me, QEvt const * const e) {
         }
         case SENSOR_HUMID_TEMP_STOP_REQ: {
             EVENT(e);
-            Evt const &req = EVT_CAST(*e);
-            me->GetHsm().SaveInSeq(req);
+            me->GetHsm().Defer(e);
             return Q_TRAN(&SensorHumidTemp::Stopping);
         }
     }
@@ -159,7 +158,6 @@ QState SensorHumidTemp::Starting(SensorHumidTemp * const me, QEvt const * const 
         case Q_EXIT_SIG: {
             EVENT(e);
             me->m_stateTimer.Stop();
-            me->GetHsm().ClearInSeq();
             return Q_HANDLED();
         }
         case GPIO_IN_START_CFM: {
@@ -187,12 +185,14 @@ QState SensorHumidTemp::Starting(SensorHumidTemp * const me, QEvt const * const 
                 evt = new SensorHumidTempStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_TIMEOUT, GET_HSMN());
             }
             Fw::Post(evt);
+            me->GetHsm().ClearInSeq();
             return Q_TRAN(&SensorHumidTemp::Stopping);
         }
         case DONE: {
             EVENT(e);
             Evt *evt = new SensorHumidTempStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_SUCCESS);
             Fw::Post(evt);
+            me->GetHsm().ClearInSeq();
             return Q_TRAN(&SensorHumidTemp::Started);
         }
     }
@@ -215,7 +215,6 @@ QState SensorHumidTemp::Stopping(SensorHumidTemp * const me, QEvt const * const 
         case Q_EXIT_SIG: {
             EVENT(e);
             me->m_stateTimer.Stop();
-            me->GetHsm().ClearInSeq();
             me->GetHsm().Recall();
             return Q_HANDLED();
         }
@@ -246,8 +245,6 @@ QState SensorHumidTemp::Stopping(SensorHumidTemp * const me, QEvt const * const 
         }
         case DONE: {
             EVENT(e);
-            Evt *evt = new SensorHumidTempStopCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_SUCCESS);
-            Fw::Post(evt);
             return Q_TRAN(&SensorHumidTemp::Stopped);
         }
     }

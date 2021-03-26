@@ -58,13 +58,15 @@ public:
 
 protected:
     enum {
-        EVT_POOL_COUNT = 3,     // Number of event pools (small, medium and large).
+        EVT_POOL_COUNT = 4,     // Number of event pools (small, medium and large).
         EVT_SIZE_SMALL = 32,
         EVT_SIZE_MEDIUM = 64,
         EVT_SIZE_LARGE = 256,
-        EVT_COUNT_SMALL = 128,
-        EVT_COUNT_MEDIUM = 16,
-        EVT_COUNT_LARGE = 4
+        EVT_SIZE_XLARGE = 2048,
+        EVT_COUNT_SMALL = 32,
+        EVT_COUNT_MEDIUM = 8,
+        EVT_COUNT_LARGE = 4,
+        EVT_COUNT_XLARGE = 2
     };
 
     static HsmAct m_hsmActStor[MAX_HSM_COUNT];
@@ -72,6 +74,7 @@ protected:
     static uint32_t m_evtPoolSmall[ROUND_UP_DIV_4(EVT_SIZE_SMALL * EVT_COUNT_SMALL)];
     static uint32_t m_evtPoolMedium[ROUND_UP_DIV_4(EVT_SIZE_MEDIUM * EVT_COUNT_MEDIUM)];
     static uint32_t m_evtPoolLarge[ROUND_UP_DIV_4(EVT_SIZE_LARGE * EVT_COUNT_LARGE)];
+    static uint32_t m_evtPoolXLarge[ROUND_UP_DIV_4(EVT_SIZE_XLARGE * EVT_COUNT_XLARGE)];
 };
 
 } // namespace FW

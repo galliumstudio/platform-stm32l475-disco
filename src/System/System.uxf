@@ -27,7 +27,7 @@ fontfamily=Monospaced //possible: SansSerif,Serif,Monospaced
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>20</x>
+      <x>0</x>
       <y>0</y>
       <w>1310</w>
       <h>1280</h>
@@ -45,7 +45,7 @@ valign=top
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>430</x>
+      <x>410</x>
       <y>80</y>
       <w>410</w>
       <h>110</h>
@@ -61,7 +61,7 @@ valign=top
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>90</x>
+      <x>70</x>
       <y>1010</y>
       <w>1080</w>
       <h>220</h>
@@ -79,7 +79,7 @@ valign=top
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>790</x>
+      <x>770</x>
       <y>280</y>
       <w>490</w>
       <h>530</h>
@@ -87,7 +87,7 @@ valign=top
     <panel_attributes>Stopping
 --
 entry/ start stateTimer,
-exit/ stop stateTimer, ClearInSeq(), recall
+exit/ stop stateTimer, recall
 
 SYSTEM_STOP_REQ / defer
 
@@ -99,7 +99,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>250</x>
+      <x>230</x>
       <y>130</y>
       <w>200</w>
       <h>170</h>
@@ -110,7 +110,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>560</x>
+      <x>540</x>
       <y>530</y>
       <w>250</w>
       <h>30</h>
@@ -121,7 +121,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>250</x>
+      <x>230</x>
       <y>920</y>
       <w>30</w>
       <h>110</h>
@@ -132,7 +132,7 @@ valign=top
   <element>
     <id>UMLSpecialState</id>
     <coordinates>
-      <x>560</x>
+      <x>540</x>
       <y>40</y>
       <w>20</w>
       <h>20</h>
@@ -143,7 +143,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>570</x>
+      <x>550</x>
       <y>40</y>
       <w>80</w>
       <h>60</h>
@@ -154,7 +154,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>830</x>
+      <x>810</x>
       <y>130</y>
       <w>170</w>
       <h>170</h>
@@ -165,7 +165,7 @@ valign=top
   <element>
     <id>UMLSpecialState</id>
     <coordinates>
-      <x>820</x>
+      <x>800</x>
       <y>210</y>
       <w>20</w>
       <h>20</h>
@@ -176,7 +176,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>820</x>
+      <x>800</x>
       <y>220</y>
       <w>30</w>
       <h>80</h>
@@ -187,7 +187,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>970</x>
+      <x>950</x>
       <y>800</y>
       <w>380</w>
       <h>120</h>
@@ -198,7 +198,7 @@ valign=top
   <element>
     <id>Text</id>
     <coordinates>
-      <x>260</x>
+      <x>240</x>
       <y>210</y>
       <w>210</w>
       <h>30</h>
@@ -210,34 +210,34 @@ style=wordwrap</panel_attributes>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>580</x>
-      <y>500</y>
+      <x>560</x>
+      <y>490</y>
       <w>200</w>
       <h>50</h>
     </coordinates>
     <panel_attributes>FAIL, STATE_TIMER
-/ ^SYSTEM_START_CFM(error)
+/ ^SYSTEM_START_CFM(error),
+  ClearInSeq()
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>980</x>
+      <x>960</x>
       <y>190</y>
       <w>220</w>
-      <h>60</h>
+      <h>50</h>
     </coordinates>
     <panel_attributes>DONE
-/ HAL_UART_DeInit(), 
-  ^SYSTEM_STOP_CFM(SUCCESS)
+/ HAL_UART_DeInit()
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>680</x>
+      <x>660</x>
       <y>240</y>
       <w>160</w>
       <h>30</h>
@@ -250,30 +250,31 @@ style=wordwrap</panel_attributes>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>260</x>
+      <x>240</x>
       <y>950</y>
       <w>240</w>
       <h>40</h>
     </coordinates>
-    <panel_attributes>DONE/ ^SYSTEM_START_CFM(SUCCESS)
+    <panel_attributes>DONE/ ^SYSTEM_START_CFM(SUCCESS),
+      ClearInSeq()
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>1030</x>
+      <x>1010</x>
       <y>870</y>
       <w>210</w>
       <h>50</h>
     </coordinates>
-    <panel_attributes>SYSTEM_STOP_REQ/ SaveInSeq()</panel_attributes>
+    <panel_attributes>SYSTEM_STOP_REQ/ defer</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>90</x>
+      <x>70</x>
       <y>280</y>
       <w>480</w>
       <h>650</h>
@@ -281,7 +282,7 @@ style=wordwrap</panel_attributes>
     <panel_attributes>Starting
 --
 entry/ start stateTimer
-exit/ stop stateTimer, ClearInSeq()
+exit/ stop stateTimer
 valign=top
 </panel_attributes>
     <additional_attributes/>
@@ -289,22 +290,22 @@ valign=top
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>120</x>
+      <x>100</x>
       <y>350</y>
       <w>420</w>
-      <h>180</h>
+      <h>190</h>
     </coordinates>
     <panel_attributes>Starting1
 --
 entry/ ResetOutSeq(),
        ^COMPOSITE_ACT_START_REQ, ^SIMPLE_ACT_START_REQ,
-       ^DEMO_START_REQ, ^WASH_START_REQ,
-       ^TRAFFIC_START_REQ, ^GPIO_IN_START_REQ,
+       ^DEMO_START_REQ, ^WASH_START_REQ, ^TRAFFIC_START_REQ,
+       ^GPIO_IN_START_REQ, ^NODE_START_REQ(srvDomain, srvPort)
        SaveOutSeq() for all events
 
 COMPOSITE_ACT_START_CFM, SIMPLE_ACT_START_CFM,
-DEMO_START_CFM, WASH_START_CFM,
-TRAFFIC_START_CFM, GPIO_IN_START_CFM
+DEMO_START_CFM, WASH_START_CFM, TRAFFIC_START_CFM,
+GPIO_IN_START_CFM, NODE_START_CFM
 / if (!HandleCfmRsp()) ^^FAIL(error)
   else if (allReceived) ^^NEXT
     
@@ -315,7 +316,7 @@ valign=top
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>120</x>
+      <x>100</x>
       <y>590</y>
       <w>420</w>
       <h>150</h>
@@ -339,18 +340,18 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>310</x>
-      <y>520</y>
+      <x>290</x>
+      <y>530</y>
       <w>30</w>
-      <h>90</h>
+      <h>80</h>
     </coordinates>
     <panel_attributes>lt=-&gt;&gt;&gt;</panel_attributes>
-    <additional_attributes>10.0;10.0;10.0;70.0</additional_attributes>
+    <additional_attributes>10.0;10.0;10.0;60.0</additional_attributes>
   </element>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>320</x>
+      <x>300</x>
       <y>550</y>
       <w>50</w>
       <h>30</h>
@@ -362,7 +363,7 @@ style=wordwrap</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>120</x>
+      <x>100</x>
       <y>790</y>
       <w>420</w>
       <h>110</h>
@@ -383,7 +384,7 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>310</x>
+      <x>290</x>
       <y>730</y>
       <w>30</w>
       <h>80</h>
@@ -394,7 +395,7 @@ valign=top
   <element>
     <id>Text</id>
     <coordinates>
-      <x>320</x>
+      <x>300</x>
       <y>750</y>
       <w>50</w>
       <h>30</h>
@@ -406,7 +407,7 @@ style=wordwrap</panel_attributes>
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>820</x>
+      <x>800</x>
       <y>380</y>
       <w>420</w>
       <h>210</h>
@@ -415,15 +416,13 @@ style=wordwrap</panel_attributes>
 --
 entry/ ResetOutSeq(),
        ^COMPOSITE_ACT_STOP_REQ, ^SIMPLE_ACT_STOP_REQ,
-       ^DEMO_STOP_REQ, ^WASH_STOP_REQ,
-       ^TRAFFIC_STOP_REQ, ^GPIO_IN_STOP_REQ,
-       ^SENSOR_STOP_REQ
+       ^DEMO_STOP_REQ, ^WASH_STOP_REQ, ^TRAFFIC_STOP_REQ,
+       ^GPIO_IN_STOP_REQ, ^NODE_STOP_REQ, ^SENSOR_STOP_REQ
        SaveOutSeq() for all events
 
 COMPOSITE_ACT_STOP_CFM, SIMPLE_ACT_STOP_CFM,
-DEMO_STOP_CFM, WASH_STOP_CFM,
-TRAFFIC_STOP_CFM, GPIO_IN_STOP_CFM,
-SENSOR_STOP_CFM
+DEMO_STOP_CFM, WASH_STOP_CFM, TRAFFIC_STOP_CFM,
+GPIO_IN_STOP_CFM, NODE_STOP_CFM, SENSOR_STOP_CFM
 / if (!HandleCfmRsp()) ^^FAIL(error)
   else if (allReceived) ^^DONE
     
@@ -434,8 +433,8 @@ valign=top
   <element>
     <id>UMLState</id>
     <coordinates>
-      <x>820</x>
-      <y>650</y>
+      <x>800</x>
+      <y>660</y>
       <w>420</w>
       <h>120</h>
     </coordinates>
@@ -455,18 +454,18 @@ valign=top
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1010</x>
+      <x>990</x>
       <y>580</y>
       <w>30</w>
-      <h>90</h>
+      <h>100</h>
     </coordinates>
     <panel_attributes>lt=-&gt;&gt;&gt;</panel_attributes>
-    <additional_attributes>10.0;70.0;10.0;10.0</additional_attributes>
+    <additional_attributes>10.0;80.0;10.0;10.0</additional_attributes>
   </element>
   <element>
     <id>Text</id>
     <coordinates>
-      <x>1020</x>
+      <x>1000</x>
       <y>610</y>
       <w>50</w>
       <h>30</h>
@@ -478,7 +477,7 @@ style=wordwrap</panel_attributes>
   <element>
     <id>UMLSpecialState</id>
     <coordinates>
-      <x>400</x>
+      <x>380</x>
       <y>310</y>
       <w>20</w>
       <h>20</h>
@@ -489,7 +488,7 @@ style=wordwrap</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>410</x>
+      <x>390</x>
       <y>310</y>
       <w>80</w>
       <h>60</h>
@@ -500,7 +499,7 @@ style=wordwrap</panel_attributes>
   <element>
     <id>UMLSpecialState</id>
     <coordinates>
-      <x>1110</x>
+      <x>1090</x>
       <y>340</y>
       <w>20</w>
       <h>20</h>
@@ -511,7 +510,7 @@ style=wordwrap</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1120</x>
+      <x>1100</x>
       <y>340</y>
       <w>80</w>
       <h>60</h>

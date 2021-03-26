@@ -88,7 +88,7 @@ protected:
     Timer m_activeTimer;
 
     enum{
-        ACTIVE_TIMER_MS = 10
+        ACTIVE_TIMEOUT_MS = 10
     };
 
     enum {

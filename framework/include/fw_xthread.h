@@ -57,7 +57,7 @@ public:
     }
     void Start(uint8_t prio);
     void Add(Region *reg);
-    void DelayMs(uint32_t ms) { delay(BSP_MSEC_TO_TICK(ms)); }
+    static void DelayMs(uint32_t ms) { delay(BSP_MSEC_TO_TICK(ms)); }
 
 protected:
     virtual void OnRun() = 0;

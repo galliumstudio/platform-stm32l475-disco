@@ -76,6 +76,7 @@
 #include "Ili9341.h"
 #include "GpioIn.h"
 #include "Sensor.h"
+#include "Wifi.h"
 #include "fw_log.h"
 
 /* USER CODE BEGIN 0 */
@@ -233,7 +234,11 @@ extern "C" void EXTI0_IRQHandler(void)
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t pin) {
-    GpioIn::GpioIntCallback(pin);
+    if (pin == GPIO_PIN_1) {
+        Wifi::SignalCmdDataRdySem();
+    } else {
+        GpioIn::GpioIntCallback(pin);
+    }
 }
 
 // Sensors.
@@ -290,16 +295,29 @@ extern "C" void DMA2_Channel3_IRQHandler(void) {
     QXK_ISR_EXIT();
 }
 
+// ES_WIFI module.
+// Must be declared as extern "C" in header.
+extern "C" void SPI3_IRQHandler(void)
+{
+    QXK_ISR_ENTRY();
+    HAL_SPI_IRQHandler(Wifi::GetHal());
+    QXK_ISR_EXIT();
+}
+
 
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hal) {
     if (hal == Ili9341::GetHal()) {
         Ili9341::SignalSpiSem();
+    } else if (hal == Wifi::GetHal()) {
+        Wifi::SignalSpiSem();
     }
 }
 
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hal) {
     if (hal == Ili9341::GetHal()) {
         Ili9341::SignalSpiSem();
+    } else if (hal == Wifi::GetHal()) {
+        Wifi::SignalSpiSem();
     }
 }
 /* USER CODE END 1 */

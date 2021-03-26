@@ -52,6 +52,8 @@ namespace APP {
     ADD_HSM(UART_IN, 2) \
     ADD_HSM(UART_OUT, 2) \
     ADD_HSM(WIFI, 1) \
+    ADD_HSM(NODE, 1) \
+    ADD_HSM(NODE_PARSER, 1) \
     ADD_HSM(DISP, 2) \
     ADD_HSM(SENSOR, 1) \
     ADD_HSM(SENSOR_ACCEL_GYRO, 1) \
@@ -115,6 +117,8 @@ enum
     PRIO_SYSTEM         = 26,
     PRIO_LEDPANEL       = 24,
     PRIO_ILI9341        = 22,
+    PRIO_WIFI           = 20,
+    PRIO_NODE           = 18,
     PRIO_GPIO_IN_ACT    = 16,
     PRIO_DEMO           = 10,
     PRIO_GPIO_OUT_ACT   = 9,

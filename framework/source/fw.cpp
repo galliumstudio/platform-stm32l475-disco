@@ -52,6 +52,7 @@ HsmActMap Fw::m_hsmActMap(m_hsmActStor, ARRAY_COUNT(m_hsmActStor), HsmAct(NULL, 
 uint32_t Fw::m_evtPoolSmall[ROUND_UP_DIV_4(EVT_SIZE_SMALL * EVT_COUNT_SMALL)];
 uint32_t Fw::m_evtPoolMedium[ROUND_UP_DIV_4(EVT_SIZE_MEDIUM * EVT_COUNT_MEDIUM)];
 uint32_t Fw::m_evtPoolLarge[ROUND_UP_DIV_4(EVT_SIZE_LARGE * EVT_COUNT_LARGE)];
+uint32_t Fw::m_evtPoolXLarge[ROUND_UP_DIV_4(EVT_SIZE_XLARGE * EVT_COUNT_XLARGE)];
 
 
 void Fw::Init() {
@@ -61,6 +62,7 @@ void Fw::Init() {
     QF::poolInit(m_evtPoolSmall, sizeof(m_evtPoolSmall), EVT_SIZE_SMALL);
     QF::poolInit(m_evtPoolMedium, sizeof(m_evtPoolMedium), EVT_SIZE_MEDIUM);
     QF::poolInit(m_evtPoolLarge, sizeof(m_evtPoolLarge), EVT_SIZE_LARGE);
+    QF::poolInit(m_evtPoolXLarge, sizeof(m_evtPoolXLarge), EVT_SIZE_XLARGE);
     // Any necessary framework initialization will be placed here.
     // ...
     // Initialize BSP include HAL.

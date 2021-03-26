@@ -101,8 +101,7 @@ QState CompositeAct::Root(CompositeAct * const me, QEvt const * const e) {
         }
         case COMPOSITE_ACT_STOP_REQ: {
             EVENT(e);
-            Evt const &req = EVT_CAST(*e);
-            me->GetHsm().SaveInSeq(req);
+            me->GetHsm().Defer(e);
             return Q_TRAN(&CompositeAct::Stopping);
         }
     }
@@ -154,7 +153,6 @@ QState CompositeAct::Starting(CompositeAct * const me, QEvt const * const e) {
         case Q_EXIT_SIG: {
             EVENT(e);
             me->m_stateTimer.Stop();
-            me->GetHsm().ClearInSeq();
             return Q_HANDLED();
         }
         case COMPOSITE_REG_START_CFM: {
@@ -182,12 +180,14 @@ QState CompositeAct::Starting(CompositeAct * const me, QEvt const * const e) {
                 evt = new CompositeActStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_TIMEOUT, GET_HSMN());
             }
             Fw::Post(evt);
+            me->GetHsm().ClearInSeq();
             return Q_TRAN(&CompositeAct::Stopping);
         }
         case DONE: {
             EVENT(e);
             Evt *evt = new CompositeActStartCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_SUCCESS);
             Fw::Post(evt);
+            me->GetHsm().ClearInSeq();
             return Q_TRAN(&CompositeAct::Started);
         }
     }
@@ -212,7 +212,6 @@ QState CompositeAct::Stopping(CompositeAct * const me, QEvt const * const e) {
         case Q_EXIT_SIG: {
             EVENT(e);
             me->m_stateTimer.Stop();
-            me->GetHsm().ClearInSeq();
             me->GetHsm().Recall();
             return Q_HANDLED();
         }
@@ -243,8 +242,6 @@ QState CompositeAct::Stopping(CompositeAct * const me, QEvt const * const e) {
         }
         case DONE: {
             EVENT(e);
-            Evt *evt = new CompositeActStopCfm(me->GetHsm().GetInHsmn(), GET_HSMN(), me->GetHsm().GetInSeq(), ERROR_SUCCESS);
-            Fw::Post(evt);
             return Q_TRAN(&CompositeAct::Stopped);
         }
     }

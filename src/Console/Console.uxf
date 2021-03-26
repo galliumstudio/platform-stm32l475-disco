@@ -105,7 +105,7 @@ valign=top
 --
 entry/ start stateTimer, ResetOutSeq(),
        ^UART_ACT_STOP_REQ, SaveOutSeq()
-exit/ stop stateTimer, ClearInSeq(), recall
+exit/ stop stateTimer, recall
 
 CONSOLE_STOP_REQ/ defer
 
@@ -129,7 +129,7 @@ valign=top
 --
 entry/ start stateTimer, ResetOutSeq(),
        ^UART_ACT_START_REQ, SaveOutSeq()
-exit/ stop stateTimer, ClearInSeq()
+exit/ stop stateTimer
 
 UART_ACT_START_CFM
 / if (!HandleCfmRsp()) ^^FAILED(error)
@@ -246,12 +246,13 @@ style=wordwrap</panel_attributes>
     <id>Text</id>
     <coordinates>
       <x>804</x>
-      <y>432</y>
+      <y>420</y>
       <w>312</w>
       <h>60</h>
     </coordinates>
     <panel_attributes>FAILED, STATE_TIMER
-/ ^CONSOLE_START_CFM(error)
+/ ^CONSOLE_START_CFM(error),
+  ClearInSeq()
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
@@ -263,7 +264,7 @@ style=wordwrap</panel_attributes>
       <w>300</w>
       <h>36</h>
     </coordinates>
-    <panel_attributes>DONE/ ^CONSOLE_STOP_CFM(SUCCESS)
+    <panel_attributes>DONE
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
@@ -299,7 +300,7 @@ style=wordwrap</panel_attributes>
       <w>288</w>
       <h>36</h>
     </coordinates>
-    <panel_attributes>CONSOLE_STOP_REQ /SaveInSeq()
+    <panel_attributes>CONSOLE_STOP_REQ/ defer
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
@@ -409,7 +410,8 @@ valign=top
       <w>324</w>
       <h>48</h>
     </coordinates>
-    <panel_attributes>DONE/ ^CONSOLE_START_CFM(SUCCESS)
+    <panel_attributes>DONE/ ^CONSOLE_START_CFM(SUCCESS),
+      ClearInSeq()
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>
