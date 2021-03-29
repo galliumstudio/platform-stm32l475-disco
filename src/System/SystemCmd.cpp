@@ -49,6 +49,9 @@
 
 FW_DEFINE_THIS_FILE("SystemCmd.cpp")
 
+// Uncomment the following to enable tensorflow demo.
+//#define ENABLE_TENSOR
+
 namespace APP {
 
 static CmdStatus Test(Console &console, Evt const *e) {
@@ -114,14 +117,10 @@ static CmdStatus Cpu(Console &console, Evt const *e) {
 }
 
 static CmdStatus Tensor(Console &console, Evt const *e) {
+#ifdef ENABLE_TENSOR
     switch (e->sig) {
         case Console::CONSOLE_CMD: {
             setup();
-            /*
-            while (true) {
-              loop();
-            }
-            */
             Evt *evt = new LevelMeterStopReq(LEVEL_METER, CONSOLE, 0);
             Fw::Post(evt);
             break;
@@ -142,6 +141,15 @@ static CmdStatus Tensor(Console &console, Evt const *e) {
         }
     }
     return CMD_CONTINUE;
+#else
+    switch (e->sig) {
+        case Console::CONSOLE_CMD: {
+            console.PutStr("Tensorflow demo currently disabled.\n\r");
+            break;
+        }
+    }
+    return CMD_DONE;
+#endif
 }
 
 static CmdStatus List(Console &console, Evt const *e);

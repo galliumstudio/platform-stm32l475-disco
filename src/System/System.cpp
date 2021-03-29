@@ -68,6 +68,7 @@
 FW_DEFINE_THIS_FILE("System.cpp")
 
 #define SRV_DOMAIN      "192.168.1.233"
+//#define SRV_DOMAIN      "192.168.1.199"
 #define SRV_PORT        60002
 
 using namespace FW;
