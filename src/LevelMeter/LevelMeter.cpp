@@ -74,7 +74,8 @@ LevelMeter::LevelMeter() :
     m_accelGyroPipe(m_accelGyroStor, ACCEL_GYRO_PIPE_ORDER),
     m_pitch(0), m_roll(0), m_pitchThres(90), m_rollThres(90),
     m_stateTimer(GetHsm().GetHsmn(), STATE_TIMER),
-    m_reportTimer(GetHsm().GetHsmn(), REPORT_TIMER) {
+    m_reportTimer(GetHsm().GetHsmn(), REPORT_TIMER),
+	m_testCnt(0) {
     SET_EVT_NAME(LEVEL_METER);
 }
 
@@ -151,9 +152,12 @@ QState LevelMeter::Starting(LevelMeter * const me, QEvt const * const e) {
             Evt *evt = new DispStartReq(ILI9341, GET_HSMN(), GEN_SEQ());
             me->GetHsm().SaveOutSeq(*evt);
             Fw::Post(evt);
+            // Assignment1 test only.
+            /*
             evt = new SensorAccelGyroOnReq(SENSOR_ACCEL_GYRO, GET_HSMN(), GEN_SEQ(), &me->m_accelGyroPipe);
             me->GetHsm().SaveOutSeq(*evt);
             Fw::Post(evt);
+            */
             return Q_HANDLED();
         }
         case Q_EXIT_SIG: {
@@ -213,9 +217,12 @@ QState LevelMeter::Stopping(LevelMeter * const me, QEvt const * const e) {
             Evt *evt = new DispStopReq(ILI9341, GET_HSMN(), GEN_SEQ());
             me->GetHsm().SaveOutSeq(*evt);
             Fw::Post(evt);
+            // Assignment1 test only.
+            /*
             evt = new SensorAccelGyroOffReq(SENSOR_ACCEL_GYRO, GET_HSMN(), GEN_SEQ());
             me->GetHsm().SaveOutSeq(*evt);
             Fw::Post(evt);
+            */
             return Q_HANDLED();
         }
         case Q_EXIT_SIG: {
@@ -262,6 +269,20 @@ QState LevelMeter::Started(LevelMeter * const me, QEvt const * const e) {
     switch (e->sig) {
         case Q_ENTRY_SIG: {
             EVENT(e);
+
+            // Assignment1 test only.
+            me->m_testCnt = 0;
+            Evt *evt = new DispDrawBeginReq(ILI9341, GET_HSMN(), GEN_SEQ());
+            Fw::Post(evt);
+            char buf[] = " Welcome to  EMBSYS 330!";
+            evt = new DispDrawTextReq(ILI9341, GET_HSMN(), buf, 10, 90, COLOR24_BLUE, COLOR24_WHITE, 3);
+            Fw::Post(evt);
+            evt = new DispDrawEndReq(ILI9341, GET_HSMN(), GEN_SEQ());
+            Fw::Post(evt);
+            me->m_reportTimer.Start(100, Timer::PERIODIC);
+            return Q_HANDLED();
+            // End test.
+
             me->m_reportTimer.Start(REPORT_TIMEOUT_MS, Timer::PERIODIC);
             return Q_HANDLED();
         }
@@ -275,6 +296,26 @@ QState LevelMeter::Started(LevelMeter * const me, QEvt const * const e) {
         }
         case REPORT_TIMER: {
             EVENT(e);
+
+            // Assignment1 test only.
+            {
+				Evt *evt = new DispDrawBeginReq(ILI9341, GET_HSMN(), GEN_SEQ());
+				Fw::Post(evt);
+				char buf[100];
+				snprintf(buf, sizeof(buf), "%lu", me->m_testCnt++);
+				evt = new DispDrawTextReq(ILI9341, GET_HSMN(), buf, 10, 180, COLOR24_RED, COLOR24_WHITE, 4);
+				Fw::Post(evt);
+				if (me->m_testCnt >= 10000) {
+					me->m_testCnt = 0;
+					evt = new DispDrawTextReq(ILI9341, GET_HSMN(), "        ", 10, 180, COLOR24_RED, COLOR24_WHITE, 4);
+					Fw::Post(evt);
+				}
+				evt = new DispDrawEndReq(ILI9341, GET_HSMN(), GEN_SEQ());
+				Fw::Post(evt);
+				return Q_HANDLED();
+            }
+            // End test.
+
             // Default to zero.
             AccelGyroReport report;
             me->m_avgReport = report;
