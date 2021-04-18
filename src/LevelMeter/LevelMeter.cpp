@@ -415,10 +415,10 @@ QState LevelMeter::Redrawing(LevelMeter * const me, QEvt const * const e) {
             Fw::Post(evt);
             char buf[30];
             snprintf(buf, sizeof(buf), "P= %06.2f", me->m_pitch);
-            evt = new DispDrawTextReq(ILI9341, GET_HSMN(), buf, 10, 30, COLOR24_RED, COLOR24_WHITE, 4);
+            evt = new DispDrawTextReq(ILI9341, GET_HSMN(), buf, 10, 30, COLOR24_BLUE, COLOR24_GREEN, 4);
             Fw::Post(evt);
             snprintf(buf, sizeof(buf), "R= %06.2f", me->m_roll);
-            evt = new DispDrawTextReq(ILI9341, GET_HSMN(), buf, 10, 90, COLOR24_BLUE, COLOR24_WHITE, 4);
+            evt = new DispDrawTextReq(ILI9341, GET_HSMN(), buf, 10, 90, COLOR24_BLUE, COLOR24_GREEN, 4);
             Fw::Post(evt);
 
             snprintf(buf, sizeof(buf), "PT= %05.2f", me->m_pitchThres);
