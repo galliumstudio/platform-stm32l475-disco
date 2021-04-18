@@ -126,55 +126,49 @@ void Disp::DrawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint1
            ((x + 6 * size - 1) < 0) || // Clip left
            ((y + 8 * size - 1) < 0))   // Clip top
             return;
-        // Gallium - Optimization.
-        // Original library method.
-        ///*
-        for(int8_t i=0; i<5; i++ ) { // Char bitmap = 5 columns
-            uint8_t line = font[c * 5 + i];
-            for(int8_t j=0; j<8; j++, line >>= 1) {
-                if(line & 1) {
-                    if(size == 1)
-                        WritePixel(x+i, y+j, color);
-                    else
-                        FillRect(x+i*size, y+j*size, size, size, color);
-                } else if(bg != color) {
-                    if(size == 1)
-                        WritePixel(x+i, y+j, bg);
-                    else
-                        FillRect(x+i*size, y+j*size, size, size, bg);
-                }
-            }
-        }
-        if(bg != color) { // If opaque, draw vertical line for last column
-            if(size == 1) WriteFastVLine(x+5, y, 8, bg);
-            else          FillRect(x+5*size, y, size, 8*size, bg);
-        }
-        //*/
-        // Fast method using data buffer for a character bitmap (@todo - Replace hardcoded parameters.)
-        /*
+        // Gallium - Optimization for opaque font using data buffer to write a character bitmap.
+        //           (@todo - Replace hardcoded parameters)
         if (bg != color) {
-            FillMem(0, 0, 5*size, 8*size, bg);
-        }
-        for(int8_t i=0; i<5; i++ ) { // Char bitmap = 5 columns
-            uint8_t line = font[c * 5 + i];
-            for(int8_t j=0; j<8; j++, line >>= 1) {
-                //if (1) {
-                if(line & 1) {
-                    if(size == 1)
-                        WritePixel(x+i, y+j, color);
-                    else {
-                        FillMem(i*size, j*size, size, size, color);
+            // Width is 6 to add a vertical line after the character.
+            FillMem(0, 0, 6*size, 8*size, bg);
+            for(int8_t i=0; i<5; i++ ) { // Char bitmap = 5 columns
+                uint8_t line = font[c * 5 + i];
+                for(int8_t j=0; j<8; j++, line >>= 1) {
+                    if(line & 1) {
+                        if(size == 1)
+                            WritePixel(x+i, y+j, color);
+                        else {
+                            FillMem(i*size, j*size, size, size, color);
+                        }
                     }
                 }
             }
+            WriteBitmap(x, y, 5*size, 8*size, m_memBuf, 5*size*8*size*2);
+        } else {
+            // Original library method. It is for both opaque and transparent, though here it is always transparent.
+            // Original begins.
+            for(int8_t i=0; i<5; i++ ) { // Char bitmap = 5 columns
+                uint8_t line = font[c * 5 + i];
+                for(int8_t j=0; j<8; j++, line >>= 1) {
+                    if(line & 1) {
+                        if(size == 1)
+                            WritePixel(x+i, y+j, color);
+                        else
+                            FillRect(x+i*size, y+j*size, size, size, color);
+                    } else if(bg != color) {
+                        if(size == 1)
+                            WritePixel(x+i, y+j, bg);
+                        else
+                            FillRect(x+i*size, y+j*size, size, size, bg);
+                    }
+                }
+            }
+            if(bg != color) { // If opaque, draw vertical line for last column
+                if(size == 1) WriteFastVLine(x+5, y, 8, bg);
+                else          FillRect(x+5*size, y, size, 8*size, bg);
+            }
+            // Original ends.
         }
-        WriteBitmap(x, y, 5*size, 8*size, m_memBuf, 5*size*8*size*2);
-        if(bg != color) { // If opaque, draw vertical line for last column
-            if(size == 1) WriteFastVLine(x+5, y, 8, bg);
-            else          FillRect(x+5*size, y, size, 8*size, bg);
-        }
-        */
-
     } else { // Custom font
 
         // Character is assumed previously filtered by write() to eliminate

@@ -54,11 +54,16 @@
 #include "TrafficCmd.h"
 #include "SimpleActCmd.h"
 #include "CompositeActCmd.h"
+#include "TestCode.h"
 #include <memory>
 
 FW_DEFINE_THIS_FILE("ConsoleCmd.cpp")
 
 namespace APP {
+
+using std::make_shared;
+using std::shared_ptr;
+using std::static_pointer_cast;
 
 static CmdStatus Test(Console &console, Evt const *e) {
     switch (e->sig) {
@@ -220,6 +225,95 @@ static CmdStatus Perf(Console &console, Evt const *e) {
     return CMD_DONE;
 }
 
+static CmdStatus Cpp(Console &console, Evt const *e) {
+    switch (e->sig) {
+        case Console::CONSOLE_CMD: {
+            auto const &ind = static_cast<Console::ConsoleCmd const &>(*e);
+            if (ind.Argc() < 2) {
+                console.Print("Enter test case number (>=0)\n\r");
+                break;
+            }
+            uint32_t testNum = STRING_TO_NUM(ind.Argv(1), 0);
+            switch(testNum) {
+                case 0: {
+                    ModelA carA1("A001");
+                    ModelA carA2("A002");
+                    ModelA carA3("A003");
+                    ModelB carB1("B001");
+                    ModelB carB2("B002", "Autodrive");
+                    ModelB carB3("B003", "Entertainment");
+                    CarInventory inventory;
+                    inventory.Add(&carA1);
+                    inventory.Add(&carA2);
+                    inventory.Add(&carA3);
+                    inventory.Add(&carB1);
+                    inventory.Add(&carB2);
+                    inventory.Add(&carB3);
+                    inventory.Show(console);
+                    inventory.Remove("A002");
+                    inventory.Remove("B002");
+                    inventory.Remove("B004");
+                    inventory.Show(console, "After deleting some cars...");
+                    inventory.Clear();
+                    inventory.Show(console, "After clearing all...");
+                    break;
+                }
+                case 1: {
+                    auto carA1 = make_shared<ModelA>("A001");
+                    auto carB1 = make_shared<ModelB>("B002", "Navigation");
+                    CarInventorySp inventory;
+                    inventory.Add(static_pointer_cast<Vehicle>(carA1));
+                    inventory.Add(static_pointer_cast<Vehicle>(carB1));
+                    inventory.Show(console);
+                    inventory.Remove("A001");
+                    carA1.reset();
+                    inventory.Show(console, "After removing car A001...");
+                    // reset sp before removing, still OK.
+                    carB1.reset();
+                    inventory.Show(console, "After resetting car B001 shared_ptr...");
+                    inventory.Clear();
+                    inventory.Show(console, "After clearning all...");
+                    break;
+                }
+                case 2: {
+                    Vehicle car1("CAR1", 5, 35);
+                    Vehicle car2("CAR2", 7, 24);
+                    ModelA carA("A001");
+                    ModelB carB("B001");
+                    console.Print("CAR1:   A 100-mile trip costs $%f\n\r", car1.RunningCost(100, 2.89));
+                    console.Print("CAR2:   A 100-mile trip costs $%f\n\r", car2.RunningCost(100, 2.89));
+                    console.Print("ModelA: A 100-mile trip costs $%f\n\r", carA.RunningCost(100, 2.89));
+                    console.Print("ModelB: A 100-mile trip costs $%f\n\r", carB.RunningCost(100, 2.89));
+                    break;
+                }
+                case 3: {
+                    Vehicle car1("VEHICLE", 5, 35);
+                    ModelA car2("MODEL_A");
+                    char info[100];
+                    car1.GetInfo(info, sizeof(info));
+                    console.Print("Vehicle::GetInfo() is called: %s\n\r", info);
+                    car2.GetInfo(info, sizeof(info));
+                    console.Print("ModelA::GetInfo() is called: %s\n\r", info);
+                    break;
+                }
+                case 4: {
+                    ModelA car("MODEL_A");
+                    Vehicle *pv = &car;  // OK
+                    console.Print("VIN = %s\n\r", pv->GetVin());
+                    // Compile error:
+                    // invalid conversion from 'APP::Vehicle*' to 'APP::ModelA*' [-fpermissive]
+                    //ModelA *pa = pv;
+                    ModelA *pa = static_cast<ModelA *>(pv);
+                    console.Print("VIN = %s\n\r", pa->GetVin());
+                    break;
+                }
+            }
+            break;
+        }
+    }
+    return CMD_DONE;
+}
+
 static CmdStatus List(Console &console, Evt const *e);
 static CmdHandler const cmdHandler[] = {
     { "test",       Test,       "Test function", 0 },
@@ -236,6 +330,7 @@ static CmdHandler const cmdHandler[] = {
     { "wash",       AOWashingMachineCmd, "Washing machine", 0 },
     { "traffic",    TrafficCmd, "Traffic light", 0 },
     { "perf",       Perf,       "Performance demo", 0 },
+    { "cpp",        Cpp,        "C++ testing", 0 },
     { "simp",       SimpleActCmd,    "Template/SimpleAct testing", 0 },
     { "comp",       CompositeActCmd, "Template/CompositeAct testing", 0 },
     { "?",          List,       "List commands", 0 },
