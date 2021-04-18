@@ -107,43 +107,42 @@ Disp::Disp(QP::QStateHandler const initial, Hsmn hsmn, char const *name) :
     SET_EVT_NAME(DISP);
 }
 
-// Draw a character
-void Disp::FillMem(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t color) {
-    FW_ASSERT((uint32_t)((y+h-1)*w*2 + (x+w-1)*2 + 1) <= sizeof(m_memBuf));
+// Fills a memory buffer of dimension colxrow pixels with a rectangle of size wxh pixels at location (x, y).
+// The fill color is specified by color. Each pixel has two bytes.
+void Disp::FillMem(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t color, uint16_t col, uint16_t row) {
+    FW_ASSERT(((x+w) <= col) && ((y+h) <= row));
+    FW_ASSERT((uint32_t)((y+h-1)*col*2 + (x+w-1)*2 + 1) < sizeof(m_memBuf));
     for (uint32_t i=0; i<h; i++) {
         for (uint32_t j=0; j<w; j++) {
-            // @todo - Currently hardcoded for 5 pixels per row and size (multiplier) of 4.
-            m_memBuf[(y+i)*5*4*2 + (x+j)*2] = BYTE_1(color);
-            m_memBuf[(y+i)*5*4*2 + (x+j)*2 + 1] = BYTE_0(color);
+            m_memBuf[(y+i)*col*2 + (x+j)*2] = BYTE_1(color);
+            m_memBuf[(y+i)*col*2 + (x+j)*2 + 1] = BYTE_0(color);
         }
     }
 }
 
 void Disp::DrawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t size) {
     if(!m_gfxFont) { // 'Classic' built-in font
+        uint16_t col = 6*size;
+        uint16_t row = 8*size;
         if((x >= GetWidth())            || // Clip right
            (y >= GetHeight())           || // Clip bottom
-           ((x + 6 * size - 1) < 0) || // Clip left
-           ((y + 8 * size - 1) < 0))   // Clip top
+           ((x + col - 1) < 0) || // Clip left
+           ((y + row - 1) < 0))   // Clip top
             return;
         // Gallium - Optimization for opaque font using data buffer to write a character bitmap.
         //           (@todo - Replace hardcoded parameters)
         if (bg != color) {
             // Width is 6 to add a vertical line after the character.
-            FillMem(0, 0, 6*size, 8*size, bg);
+            FillMem(0, 0, col, row, bg, col, row);
             for(int8_t i=0; i<5; i++ ) { // Char bitmap = 5 columns
                 uint8_t line = font[c * 5 + i];
                 for(int8_t j=0; j<8; j++, line >>= 1) {
                     if(line & 1) {
-                        if(size == 1)
-                            WritePixel(x+i, y+j, color);
-                        else {
-                            FillMem(i*size, j*size, size, size, color);
-                        }
+                        FillMem(i*size, j*size, size, size, color, col, row);
                     }
                 }
             }
-            WriteBitmap(x, y, 5*size, 8*size, m_memBuf, 5*size*8*size*2);
+            WriteBitmap(x, y, col, row, m_memBuf, col*row*2);
         } else {
             // Original library method. It is for both opaque and transparent, though here it is always transparent.
             // Original begins.

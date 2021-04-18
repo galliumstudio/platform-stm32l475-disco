@@ -144,10 +144,15 @@ protected:
     GFXfont *m_gfxFont;
     // Gallium - Optimization.
     // Fast method using data buffer for a character bitmap (@todo - Replace hardcoded parameters.)
-    // (Hardcoded for 5x8 font, added vertical line after character,
-    //  multiplied by 4 in each dimension and 2 bytes per pixel.)
-    uint8_t m_memBuf[6*8*16*2];
-    void FillMem(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t color);
+    // It is hardcoded for 5x7 font, effective 6x8 with space lines.
+    // It supports max multiplication (size factor) up to 4 in each dimension. Each pixel has 2 bytes.
+    enum {
+        MAX_FONT_COL = 6,       // Effective max no. of columns of a font char, including space line.
+        MAX_FONT_ROW = 8,       // Effective max no. of rows of a font char, including space line.
+        MAX_FONT_SIZE = 4,      // Max multiplication factor.
+    };
+    uint8_t m_memBuf[(MAX_FONT_COL*MAX_FONT_SIZE)*(MAX_FONT_ROW*MAX_FONT_SIZE)*2];
+    void FillMem(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t color, uint16_t col, uint16_t row);
 
 #define DISP_TIMER_EVT \
     ADD_EVT(STATE_TIMER)
