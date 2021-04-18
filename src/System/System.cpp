@@ -60,6 +60,7 @@
 // Only one of the following can be enabled at a time.
 //#define ENABLE_TRAFFIC
 #define ENABLE_LEVEL_METER
+//#define ENABLE_NODE
 
 #if (defined(ENABLE_TRAFFIC) && defined(ENABLE_LEVEL_METER))
 #error ENABLE_TRAFFIC and ENABLE_LEVEL_METER cannot be both defined
@@ -270,9 +271,11 @@ QState System::Starting1(System * const me, QEvt const * const e) {
             me->GetHsm().SaveOutSeq(*evt);
             Fw::Post(evt);
 
+#ifdef ENABLE_NODE
             evt = new NodeStartReq(NODE, SYSTEM, GEN_SEQ(), SRV_DOMAIN, SRV_PORT);
             me->GetHsm().SaveOutSeq(*evt);
             Fw::Post(evt);
+#endif
 
             return Q_HANDLED();
         }
