@@ -113,6 +113,7 @@ protected:
     enum {
         MAX_ARGC = 8,
         MAX_VAR = 8,
+        CHAR_LOOP_COUNT = 10,   // Maximum no. of characters to process in a loop.
     };
 
     // FIFO storage is defined in cpp to allow custom memory location.

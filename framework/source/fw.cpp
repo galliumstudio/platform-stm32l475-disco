@@ -87,7 +87,7 @@ void Fw::Post(Evt const *e) {
     FW_ASSERT(e);
     QActive *act = m_hsmActMap.GetByIndex(e->GetTo())->GetValue();
     if (act) {
-        act->post_(e, 0);
+        act->post_(e, QF_NO_MARGIN);
     } else {
         QF::gc(e);
     }

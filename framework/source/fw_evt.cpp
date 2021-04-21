@@ -47,7 +47,7 @@ using namespace QP;
 namespace FW {
 
 void *Evt::operator new(size_t evtSize) {
-    return QF::newX_(evtSize, 0, 0);
+    return QF::newX_(evtSize, QF_NO_MARGIN, 0);
 }
 
 void Evt::operator delete(void *evt) {
