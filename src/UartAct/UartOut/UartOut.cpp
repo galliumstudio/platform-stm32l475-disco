@@ -328,7 +328,7 @@ QState UartOut::Normal(UartOut * const me, QEvt const * const e) {
                 me->PostSync(evt);
             } else {
                 evt = new Evt(UART_OUT_EMPTY_IND, me->m_client, GET_HSMN(), GEN_SEQ());
-                Fw::Post(evt);
+                Fw::PostNotInQ(evt);
                 evt = new Evt(DONE, GET_HSMN());
                 me->PostSync(evt);
             }
@@ -434,4 +434,3 @@ QState UartOut::MyState(UartOut * const me, QEvt const * const e) {
 */
 
 } // namespace APP
-

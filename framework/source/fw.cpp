@@ -93,6 +93,57 @@ void Fw::Post(Evt const *e) {
     }
 }
 
+// Returns true if e1 and e2 match.
+bool Fw::EventMatched(Evt const *e1, QEvt const *e2) {
+    FW_ASSERT(e1 && e2);
+    // If sig matches, it is guaranteed that 'e2' is an Evt event so casting is safe.
+    return ((e1->sig == e2->sig) &&
+            (e1->GetTo() == static_cast<Evt const *>(e2)->GetTo()) &&
+            (e1->GetFrom() == static_cast<Evt const *>(e2)->GetFrom()));
+}
+
+// Returns true if event e is already queued in 'queue'.
+bool Fw::EventInQNoCrit(Evt const *e, QEQueue *queue) {
+    FW_ASSERT(e && queue);
+    if (queue->m_frontEvt) {
+        if (Fw::EventMatched(e, queue->m_frontEvt)) {
+            return true;
+        }
+        QEQueueCtr i = queue->m_tail;
+        while (i != queue->m_head) {
+            if (Fw::EventMatched(e, queue->m_ring[i])) {
+                return true;
+            }
+            if (i == static_cast<QEQueueCtr>(0)) {
+                i = queue->m_end;
+            }
+            --i;
+        }
+    }
+    return false;
+}
+
+// Post an event if it is not already in the event queue of the destination active object.
+void Fw::PostNotInQ(Evt const *e) {
+    FW_ASSERT(e);
+    QActive *act = m_hsmActMap.GetByIndex(e->GetTo())->GetValue();
+    if (act) {
+        QEQueue *queue = &act->m_eQueue;
+        FW_ASSERT(queue);
+        // Critical section must support nesting.
+        QF_CRIT_STAT_TYPE crit;
+        QF_CRIT_ENTRY(crit);
+        if (!Fw::EventInQNoCrit(e, queue)) {
+            act->post_(e, QF_NO_MARGIN);
+        } else {
+            QF::gc(e);
+        }
+        QF_CRIT_EXIT(crit);
+    } else {
+        QF::gc(e);
+    }
+}
+
 // Allow HSM_UNDEF which returns NULL.
 Hsm *Fw::GetHsm(Hsmn hsmn) {
     return m_hsmActMap.GetByIndex(hsmn)->GetKey();
