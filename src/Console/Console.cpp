@@ -508,7 +508,13 @@ QState Console::Started(Console * const me, QEvt const * const e) {
         }
         case UART_IN_DATA_IND: {
             char c;
-            while(me->m_inFifo.Read(reinterpret_cast<uint8_t *>(&c), 1)) {
+            // Limits the max no. of characters to process in a loop. Each character is dispatched
+            // to CmdInput region synchronously which may send UART_OUT_WRITE_REQ to UartOut.
+            // UartOut in return may send UART_OUT_EMPTY_IND to Console. The worst case is there is a
+            // UART_OUT_EMPTY_IND per character processed, which may flood its event queue or deplete
+            // the small event pool triggering assert. The condition "count--" must come first.
+            uint32_t count = CHAR_LOOP_COUNT;
+            while(count-- && me->m_inFifo.Read(reinterpret_cast<uint8_t *>(&c), 1)) {
                 // Static event to save new and gc. It must not be deferred.
                 CmdInputCharReq req(me->GetCmdInputHsmn(GET_HSMN()), GET_HSMN(), c);
                 me->m_cmdInput.dispatch(&req);

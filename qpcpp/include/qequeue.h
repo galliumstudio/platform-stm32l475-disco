@@ -63,6 +63,7 @@
 // Gallium
 namespace FW {
     class Timer;
+    class Fw;
 }
 
 namespace QP {
@@ -273,9 +274,9 @@ private:
 #endif // Q_UTEST
     // Gallium
     friend class FW::Timer;
+    friend class FW::Fw;
 };
 
 } // namespace QP
 
 #endif // qequeue_h
-

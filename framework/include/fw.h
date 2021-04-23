@@ -53,6 +53,7 @@ public:
     static void Init();
     static void Add(Hsmn hsmn, Hsm *hsm, QP::QActive *container);
     static void Post(Evt const *e);
+    static void PostNotInQ(Evt const *e);
     static Hsm *GetHsm(Hsmn hsmn);
     static QP::QActive *GetContainer(Hsmn hsmn);
 
@@ -75,6 +76,9 @@ protected:
     static uint32_t m_evtPoolMedium[ROUND_UP_DIV_4(EVT_SIZE_MEDIUM * EVT_COUNT_MEDIUM)];
     static uint32_t m_evtPoolLarge[ROUND_UP_DIV_4(EVT_SIZE_LARGE * EVT_COUNT_LARGE)];
     static uint32_t m_evtPoolXLarge[ROUND_UP_DIV_4(EVT_SIZE_XLARGE * EVT_COUNT_XLARGE)];
+
+    static bool EventMatched(Evt const *e1, QP::QEvt const *e2);
+    static bool EventInQNoCrit(Evt const *e, QP::QEQueue *queue);
 };
 
 } // namespace FW

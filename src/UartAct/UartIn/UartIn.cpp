@@ -88,7 +88,7 @@ void UartIn::RxCallback(Hsmn hsmn, HwError error) {
     static Sequence counter = 10000;
     // It is safe to always treat it as "data ready", even if it only carries error info.
     Evt *evt = new Evt(UartIn::DATA_RDY, hsmn, HSM_UNDEF, counter++);
-    Fw::Post(evt);
+    Fw::PostNotInQ(evt);
     if (error == HW_ERROR_OVERRUN) {
         // For now, we are only interested in overrun errors (ignoring noise error).
         PRINT("UartIn::RxCallback - overrun error (%x)\n\r", error);
@@ -412,4 +412,3 @@ QState UartIn::MyState(UartIn * const me, QEvt const * const e) {
 */
 
 } // namespace APP
-
