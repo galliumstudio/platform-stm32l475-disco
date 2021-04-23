@@ -113,7 +113,6 @@ enum
 {
     PRIO_SENSOR         = 31,
     PRIO_UART1_ACT      = 29,
-    PRIO_CONSOLE_UART1  = 27,
     PRIO_SYSTEM         = 26,
     PRIO_LEDPANEL       = 24,
     PRIO_ILI9341        = 22,
@@ -127,7 +126,8 @@ enum
     PRIO_TRAFFIC        = 6,
     PRIO_LEVEL_METER    = 5,
     PRIO_SIMPLE_ACT     = 4,
-    PRIO_COMPOSITE_ACT  = 3
+    PRIO_COMPOSITE_ACT  = 3,
+    PRIO_CONSOLE_UART1  = 1,
 };
 
 } // namespace APP

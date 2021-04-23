@@ -93,8 +93,14 @@ void Timer::Stop() {
             FW_ASSERT(IS_TIMER_EVT(queue->m_frontEvt->sig) && QF_EVT_POOL_ID_(queue->m_frontEvt) == 0);
             queue->m_frontEvt = &CANCELED_TIMER;
         }
+        // nFree includes frontEvt, so nFree <= m_end + 1 (where m_end is the size of m_ring).
+        // Since frontEvt is used, nFree <= (m_end + 1) - 1 = m_end
+        FW_ASSERT(queue->m_nFree <= queue->m_end);
+        // Total used entries = total - nFree = (m_end + 1) - nFree.
+        // Used entries in m_ring = total used - 1 = m_end - nFree, which must be >= 0.
+        QEQueueCtr count = queue->m_end - queue->m_nFree;
         QEQueueCtr i = queue->m_tail;
-        while (i != queue->m_head) {
+        while (count--) {
             QEvt const *e = queue->m_ring[i];
             if (IsMatch(e)) {
                 FW_ASSERT(IS_TIMER_EVT(e->sig) && QF_EVT_POOL_ID_(e) == 0);

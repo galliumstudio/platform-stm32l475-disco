@@ -109,8 +109,14 @@ bool Fw::EventInQNoCrit(Evt const *e, QEQueue *queue) {
         if (Fw::EventMatched(e, queue->m_frontEvt)) {
             return true;
         }
+        // nFree includes frontEvt, so nFree <= m_end + 1 (where m_end is the size of m_ring).
+        // Since frontEvt is used, nFree <= (m_end + 1) - 1 = m_end
+        FW_ASSERT(queue->m_nFree <= queue->m_end);
+        // Total used entries = total - nFree = (m_end + 1) - nFree.
+        // Used entries in m_ring = total used - 1 = m_end - nFree, which must be >= 0.
+        QEQueueCtr count = queue->m_end - queue->m_nFree;
         QEQueueCtr i = queue->m_tail;
-        while (i != queue->m_head) {
+        while (count--) {
             if (Fw::EventMatched(e, queue->m_ring[i])) {
                 return true;
             }
