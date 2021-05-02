@@ -69,7 +69,7 @@ public:
     virtual void GetInfo(char *buf, uint32_t bufSize) const {
         snprintf(buf, bufSize, "To be implemented in derived classes");
     }
-    float RunningCost(uint32_t miles, float gasPrice) const {
+    float RunningCost(float miles, float gasPrice) const {
         TEST_CODE_ASSERT(m_mpg);
         return (miles/m_mpg)*gasPrice;
     }
