@@ -205,14 +205,30 @@ static CmdStatus On(Console &console, Evt const *e) {
                 // it when adding your own code.
                 // Being sample code.
                 InitGpio();
-                ConfigPwm(1000);
-                Delay(200);
+                // GpioPatternSet const *patternSet = &TEST_GPIO_PATTERN_SET;
+                // patternSet->GetPattern(0);
+                // Not to do this:
+                // GpioPatternSet const patternSet = TEST_GPIO_PATTERN_SET;
+
+                GpioPatternSet const &patternSet = TEST_GPIO_PATTERN_SET;
+                GpioPattern const *gpioPattern = patternSet.GetPattern(pattern);
+                if (!gpioPattern) {
+                    console.Print("Invalid pattern %d, must be < %d\r\n", pattern, patternSet.GetCount());
+                    return CMD_DONE;
+                }
+                uint32_t loop = repeat ? 5 : 1;
+                while(loop--) {
+                    for (uint32_t i = 0; i < gpioPattern->GetCount(); i++) {
+                        GpioInterval const &interval = gpioPattern->GetInterval(i);
+                        console.Print("[%d] level = %d, dur = %d\r\n", i,
+                                      interval.GetLevelPermil(), interval.GetDurationMs());
+                        ConfigPwm(interval.GetLevelPermil());
+                        Delay(interval.GetDurationMs());
+                    }
+                }
+                console.Print("Done\r\n");
                 ConfigPwm(0);
-                Delay(200);
-                ConfigPwm(200);
-                Delay(200);
-                ConfigPwm(0);
-                // End sample code.
+                DeInitGpio();
                 return CMD_DONE;
             }
             console.Print("led on <pattern idx> [0=once,*other=repeat]\n\r");

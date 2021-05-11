@@ -27,18 +27,15 @@ public:
     uint32_t m_count;                // Number of intervals in use.
     GpioInterval m_interval[COUNT];   // Array of intervals. Used ones start from index 0.
     
-    // Assignment 2
-    /*
+    // Must perform range check. Assert if invalid.
     uint32_t GetCount() const { 
-        return ...
+        return m_count;
     }
 
-    // Returns a reference to the indexed GPIO interval object.
-    // Use FW_ASSERT() to ensure index is in range.
     GpioInterval const &GetInterval(uint32_t index) const {
-        return ...
+        GPIO_PATTERN_ASSERT(index < m_count);
+        return m_interval[index];
     }
-    */
 };
 
 class GpioPatternSet {
@@ -49,18 +46,16 @@ public:
     uint32_t m_count;               // Number of patterns in use.
     GpioPattern m_pattern[COUNT];    // Array of patterns. Used ones start from index 0.
     
-    // Assignment 2
-    /*
+    // Must perform range check. Assert if invalid.
     uint32_t GetCount() const {
-        return ...
+        return m_count;
     }
-
-    // Returns NULL if index is out-of-range. Otherwise returns a pointer to the indexed LED pattern object.
     GpioPattern const *GetPattern(uint32_t index) const {
-        ...
-        return ...
+        if (index < m_count) {
+            return &m_pattern[index];
+        }
+        return NULL;
     }
-    */
 };
 
 extern GpioPatternSet const TEST_GPIO_PATTERN_SET;
