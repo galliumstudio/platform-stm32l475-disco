@@ -33,7 +33,7 @@ fontfamily=Monospaced //possible: SansSerif,Serif,Monospaced
       <w>1464</w>
       <h>984</h>
     </coordinates>
-    <panel_attributes>Iks01a1::Root
+    <panel_attributes>Sensor::Root
 --
 entry/ initialize regions
 SENSOR_START_REQ/ ^SENSOR_START_CFM(STATE)
