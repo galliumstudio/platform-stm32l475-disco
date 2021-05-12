@@ -74,7 +74,8 @@ LevelMeter::LevelMeter() :
     m_accelGyroPipe(m_accelGyroStor, ACCEL_GYRO_PIPE_ORDER),
     m_pitch(0), m_roll(0), m_pitchThres(90), m_rollThres(90),
     m_stateTimer(GetHsm().GetHsmn(), STATE_TIMER),
-    m_reportTimer(GetHsm().GetHsmn(), REPORT_TIMER) {
+    m_reportTimer(GetHsm().GetHsmn(), REPORT_TIMER),
+	m_testCnt(0) {
     SET_EVT_NAME(LEVEL_METER);
 }
 
@@ -151,9 +152,12 @@ QState LevelMeter::Starting(LevelMeter * const me, QEvt const * const e) {
             Evt *evt = new DispStartReq(ILI9341, GET_HSMN(), GEN_SEQ());
             me->GetHsm().SaveOutSeq(*evt);
             Fw::Post(evt);
+            // Assignment 1 test only.
+            /*
             evt = new SensorAccelGyroOnReq(SENSOR_ACCEL_GYRO, GET_HSMN(), GEN_SEQ(), &me->m_accelGyroPipe);
             me->GetHsm().SaveOutSeq(*evt);
             Fw::Post(evt);
+            */
             return Q_HANDLED();
         }
         case Q_EXIT_SIG: {
@@ -213,9 +217,12 @@ QState LevelMeter::Stopping(LevelMeter * const me, QEvt const * const e) {
             Evt *evt = new DispStopReq(ILI9341, GET_HSMN(), GEN_SEQ());
             me->GetHsm().SaveOutSeq(*evt);
             Fw::Post(evt);
+            // Assignment 1 test only.
+            /*
             evt = new SensorAccelGyroOffReq(SENSOR_ACCEL_GYRO, GET_HSMN(), GEN_SEQ());
             me->GetHsm().SaveOutSeq(*evt);
             Fw::Post(evt);
+            */
             return Q_HANDLED();
         }
         case Q_EXIT_SIG: {
@@ -262,6 +269,20 @@ QState LevelMeter::Started(LevelMeter * const me, QEvt const * const e) {
     switch (e->sig) {
         case Q_ENTRY_SIG: {
             EVENT(e);
+
+            // Assignment 1 test only.
+            me->m_testCnt = 0;
+            Evt *evt = new DispDrawBeginReq(ILI9341, GET_HSMN(), GEN_SEQ());
+            Fw::Post(evt);
+            char buf[] = " Welcome to  EMBSYS 330!";
+            evt = new DispDrawTextReq(ILI9341, GET_HSMN(), buf, 10, 90, COLOR24_BLUE, COLOR24_WHITE, 3);
+            Fw::Post(evt);
+            evt = new DispDrawEndReq(ILI9341, GET_HSMN(), GEN_SEQ());
+            Fw::Post(evt);
+            me->m_reportTimer.Start(100, Timer::PERIODIC);
+            return Q_HANDLED();
+            // End test.
+
             me->m_reportTimer.Start(REPORT_TIMEOUT_MS, Timer::PERIODIC);
             return Q_HANDLED();
         }
@@ -275,65 +296,25 @@ QState LevelMeter::Started(LevelMeter * const me, QEvt const * const e) {
         }
         case REPORT_TIMER: {
             EVENT(e);
-            // Default to zero.
-            AccelGyroReport report;
-            me->m_avgReport = report;
-            int32_t count = 0;
-            while (me->m_accelGyroPipe.GetUsedCount()) {
-                me->m_accelGyroPipe.Read(&report, 1);
-                //LOG("%d %d %d", report.m_aX, report.m_aY, report.m_aZ);
-                me->m_avgReport.m_aX += report.m_aX;
-                me->m_avgReport.m_aY += report.m_aY;
-                me->m_avgReport.m_aZ += report.m_aZ;
-                //LOG("%d, %d, %d", me->m_avgReport.m_aX, me->m_avgReport.m_aY, me->m_avgReport.m_aZ);
-                count++;
-            }
-            if (count) {
-                me->m_avgReport.m_aX /= count;
-                me->m_avgReport.m_aY /= count;
-                me->m_avgReport.m_aZ /= count;
-            }
-            LOG("(count = %d) %d, %d, %d", count, me->m_avgReport.m_aX, me->m_avgReport.m_aY, me->m_avgReport.m_aZ);
 
-            const float PI = 3.14159265;
-            float x = me->m_avgReport.m_aX;
-            float y = me->m_avgReport.m_aY;
-            float z = me->m_avgReport.m_aZ;
-            me->m_pitch = atan(x/sqrt((y*y) + (z*z))) * 180/PI;
-            me->m_roll  = atan(y/sqrt((x*x) + (z*z))) * 180/PI;
-            // Alternative methods.
-            /*
-            const float G = 1000;
-            if (x > 0) {
-                x = LESS(x, G);
-            } else {
-                x = GREATER(x, -G);
+            // Assignment 1 test only.
+            {
+				Evt *evt = new DispDrawBeginReq(ILI9341, GET_HSMN(), GEN_SEQ());
+				Fw::Post(evt);
+				char buf[100];
+				snprintf(buf, sizeof(buf), "%lu", me->m_testCnt++);
+				evt = new DispDrawTextReq(ILI9341, GET_HSMN(), buf, 10, 180, COLOR24_RED, COLOR24_WHITE, 4);
+				Fw::Post(evt);
+				if (me->m_testCnt >= 10000) {
+					me->m_testCnt = 0;
+					evt = new DispDrawTextReq(ILI9341, GET_HSMN(), "        ", 10, 180, COLOR24_RED, COLOR24_WHITE, 4);
+					Fw::Post(evt);
+				}
+				evt = new DispDrawEndReq(ILI9341, GET_HSMN(), GEN_SEQ());
+				Fw::Post(evt);
+				return Q_HANDLED();
             }
-            if (y > 0) {
-                y = LESS(y, G);
-            } else {
-                y = GREATER(y, -G);
-            }
-            me->m_pitch = asin(x/G) * 180/PI;
-            me->m_roll = asin(y/G) * 180/PI;
-            */
-            //PRINT("pitch=%06.2f, roll=%06.2f\n\r", pitch, roll);
-
-            Evt *evt = new Evt(REDRAW, GET_HSMN());
-            me->PostSync(evt);
-            // Obsolete way.
-            /*
-            char buf[50];
-            snprintf(buf, sizeof(buf), "%d %d %d\n\r", (int)me->m_avgReport.m_aX, (int)me->m_avgReport.m_aY, (int)me->m_avgReport.m_aZ);
-            evt = new WifiSendReq(WIFI_ST, GET_HSMN(), 0, buf);
-            Fw::Post(evt);
-            */
-
-            // @todo Currently when the destination (to) of a msg is undefined, the server sends to all nodes.
-            //       This will be changed to pub-sub in the future.
-            // @todo The source (from) of a msg is to be added by Node before it is sent. May remove from ctor.
-            SensorDataIndMsg indMsg(MSG_UNDEF, MSG_UNDEF, 0, me->m_pitch, me->m_roll);
-            Fw::Post(new LevelMeterDataInd(NODE, GET_HSMN(), indMsg));
+            // End test.
             return Q_HANDLED();
         }
         case LEVEL_METER_CONTROL_REQ: {
