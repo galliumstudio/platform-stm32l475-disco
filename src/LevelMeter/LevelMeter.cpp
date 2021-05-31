@@ -295,43 +295,14 @@ QState LevelMeter::Started(LevelMeter * const me, QEvt const * const e) {
             }
             LOG("(count = %d) %d, %d, %d", count, me->m_avgReport.m_aX, me->m_avgReport.m_aY, me->m_avgReport.m_aZ);
 
-            const float PI = 3.14159265;
-            float x = me->m_avgReport.m_aX;
-            float y = me->m_avgReport.m_aY;
-            float z = me->m_avgReport.m_aZ;
-            me->m_pitch = atan(x/sqrt((y*y) + (z*z))) * 180/PI;
-            me->m_roll  = atan(y/sqrt((x*x) + (z*z))) * 180/PI;
-            // Alternative methods.
-            /*
-            const float G = 1000;
-            if (x > 0) {
-                x = LESS(x, G);
-            } else {
-                x = GREATER(x, -G);
-            }
-            if (y > 0) {
-                y = LESS(y, G);
-            } else {
-                y = GREATER(y, -G);
-            }
-            me->m_pitch = asin(x/G) * 180/PI;
-            me->m_roll = asin(y/G) * 180/PI;
-            */
-            //PRINT("pitch=%06.2f, roll=%06.2f\n\r", pitch, roll);
+            // Assignment - Calculate pitch and roll from accelerometer X, Y and Z data.
+            //me->m_pitch = ...
+            //me->m_roll  = ...
 
+            // Update LCD display.
             Evt *evt = new Evt(REDRAW, GET_HSMN());
             me->PostSync(evt);
-            // Obsolete way.
-            /*
-            char buf[50];
-            snprintf(buf, sizeof(buf), "%d %d %d\n\r", (int)me->m_avgReport.m_aX, (int)me->m_avgReport.m_aY, (int)me->m_avgReport.m_aZ);
-            evt = new WifiSendReq(WIFI_ST, GET_HSMN(), 0, buf);
-            Fw::Post(evt);
-            */
-
-            // @todo Currently when the destination (to) of a msg is undefined, the server sends to all nodes.
-            //       This will be changed to pub-sub in the future.
-            // @todo The source (from) of a msg is to be added by Node before it is sent. May remove from ctor.
+            // Update web app through IoT server.
             SensorDataIndMsg indMsg(MSG_UNDEF, MSG_UNDEF, 0, me->m_pitch, me->m_roll);
             Fw::Post(new LevelMeterDataInd(NODE, GET_HSMN(), indMsg));
             return Q_HANDLED();
@@ -340,6 +311,14 @@ QState LevelMeter::Started(LevelMeter * const me, QEvt const * const e) {
             auto const &req = static_cast<LevelMeterControlReq const &>(*e);
             me->m_pitchThres = req.GetPitchThres();
             me->m_rollThres = req.GetRollThres();
+
+            // Assignment - Compares current measurement (m_pitch and m_roll) against the set thresholds.
+            //              Displays an alarm (your own design choice) to alert the end-user, e.g.
+            //              - Shows an LED pattern.
+            //              - Shows a warning message or icon on the LCD.
+            //              - Changes the text background/foreground colors on the LCD.
+            //              The code may not be located right here.
+
             Evt *evt = new Evt(REDRAW, GET_HSMN());
             me->PostSync(evt);
             return Q_HANDLED();
