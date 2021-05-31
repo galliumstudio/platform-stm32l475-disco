@@ -95,7 +95,7 @@ public:
 class NodeStopReq : public Evt {
 public:
     enum {
-        TIMEOUT_MS = 400
+        TIMEOUT_MS = 12000      // Must be greater than WifiStopReq timeout which is set to 10s.
     };
     NodeStopReq(Hsmn to, Hsmn from, Sequence seq) :
         Evt(NODE_STOP_REQ, to, from, seq) {}
